@@ -1,0 +1,13 @@
+# Binaries for programs
+*.exe
+*.test
+*.prof
+
+# Environment variables
+.env
+
+# IDE-specific files
+.vscode/
+
+# Go module cache
+# vendor/
