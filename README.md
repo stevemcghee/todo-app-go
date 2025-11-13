@@ -176,12 +176,56 @@ gcloud sql instances create [YOUR_INSTANCE_NAME] \
 
 Replace `[YOUR_INSTANCE_NAME]` and `[YOUR_REGION]` with your desired instance name and Google Cloud region. This command provisions the smallest, most cost-effective instance type.
 
-When you create the instance, make sure to:
-*   Note the **Connection name** of your instance. You will need it later.
-*   Create a user and a database.
-*   Set the password for the `postgres` user. You will be prompted to do so after the instance is created.
+When you create the instance, note the **Connection name**. You will need it later.
 
-### 2. Deploy to Cloud Run
+### 2. Create a Database and User
+
+After the instance is created, you need to create the database and a user for your application.
+
+**Create the database:**
+```bash
+gcloud sql databases create todoapp_db --instance=[YOUR_INSTANCE_NAME]
+```
+
+**Create the user:**
+```bash
+gcloud sql users create user --instance=[YOUR_INSTANCE_NAME] --password=[YOUR_DB_PASSWORD]
+```
+
+Replace `[YOUR_INSTANCE_NAME]` and `[YOUR_DB_PASSWORD]` with your actual instance name and a secure password.
+
+### 3. Deploy to Cloud Run
+
+### 4. Initialize the Database Schema
+
+Unlike the local Docker setup, Cloud SQL does not automatically run the `init.sql` script. You must manually create the table schema.
+
+1.  **Connect to your instance using the `gcloud` CLI:**
+    ```bash
+    gcloud sql connect [YOUR_INSTANCE_NAME] --user=user
+    ```
+    Enter the password for the `user` you created in the previous step.
+
+2.  **Connect to your database:**
+    Once in the `psql` shell, connect to your database:
+    ```sql
+    \c todoapp_db
+    ```
+
+3.  **Create the `todos` table:**
+    Paste and run the following SQL command to create the necessary table:
+    ```sql
+    CREATE TABLE IF NOT EXISTS todos (
+        id SERIAL PRIMARY KEY,
+        task TEXT NOT NULL,
+        completed BOOLEAN DEFAULT FALSE
+    );
+    ```
+
+4.  **Exit the `psql` shell:**
+    ```sql
+    \q
+    ```
 
 Use the `gcloud run deploy` command to deploy your application. This command will create a new Cloud Run service or update an existing one.
 
