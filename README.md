@@ -146,3 +146,40 @@ Finally, push the tagged image to your Artifact Registry repository:
 ```bash
 docker push ${IMAGE_NAME}
 ```
+
+## Deploying to Google Cloud Run
+
+After pushing your image to Artifact Registry, you can deploy it to Cloud Run.
+
+### 1. Set up a Cloud SQL for PostgreSQL Instance
+
+Your application needs a PostgreSQL database. You can create a Cloud SQL for PostgreSQL instance by following the [Cloud SQL documentation](https://cloud.google.com/sql/docs/postgres/create-instance).
+
+When you create the instance, make sure to:
+*   Note the **Connection name** of your instance. You will need it later.
+*   Create a user and a database.
+
+### 2. Deploy to Cloud Run
+
+Use the `gcloud run deploy` command to deploy your application. This command will create a new Cloud Run service or update an existing one.
+
+```bash
+gcloud run deploy todo-app-go \
+    --image [YOUR_REGION]-docker.pkg.dev/[YOUR_PROJECT_ID]/[YOUR_REPOSITORY_NAME]/todo-app-go:latest \
+    --platform managed \
+    --region [YOUR_REGION] \
+    --allow-unauthenticated \
+    --add-cloudsql-instances [YOUR_CLOUD_SQL_CONNECTION_NAME] \
+    --set-env-vars "POSTGRES_USER=[YOUR_DB_USER],POSTGRES_PASSWORD=[YOUR_DB_PASSWORD],POSTGRES_DB=[YOUR_DB_NAME]"
+```
+
+Replace the following placeholders:
+*   `[YOUR_REGION]`: The region where you want to deploy your service.
+*   `[YOUR_PROJECT_ID]`: Your Google Cloud project ID.
+*   `[YOUR_REPOSITORY_NAME]`: The name of your Artifact Registry repository.
+*   `[YOUR_CLOUD_SQL_CONNECTION_NAME]`: The connection name of your Cloud SQL instance.
+*   `[YOUR_DB_USER]`: The username for your Cloud SQL database.
+*   `[YOUR_DB_PASSWORD]`: The password for your Cloud SQL database user.
+*   `[YOUR_DB_NAME]`: The name of your Cloud SQL database.
+
+After running this command, your service will be deployed to Cloud Run and you will get a URL to access it.
