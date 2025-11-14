@@ -9,8 +9,10 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -30,6 +32,29 @@ func main() {
 	if dbURL == "" {
 		log.Fatal("DATABASE_URL environment variable not set")
 	}
+
+	// Log the database URL for debugging, but without the password.
+	parsedURL, err := url.Parse(dbURL)
+	if err != nil {
+		log.Fatalf("Could not parse DATABASE_URL: %v", err)
+	}
+	
+	safeURL := parsedURL.Redacted()
+	log.Printf("Connecting to database: %s", safeURL)
+
+	// If using a Cloud SQL Unix socket, check if the directory exists.
+	if host := parsedURL.Query().Get("host"); strings.HasPrefix(host, "/cloudsql/") {
+		if _, err := os.Stat(host); os.IsNotExist(err) {
+			log.Printf("Cloud SQL socket directory not found: %s", host)
+			// Log the contents of the /cloudsql directory for debugging.
+			files, _ := os.ReadDir("/cloudsql")
+			log.Printf("Contents of /cloudsql:")
+			for _, f := range files {
+				log.Printf("- %s", f.Name())
+			}
+		}
+	}
+
 
 	for i := 0; i < 5; i++ {
 		db, err = sql.Open("postgres", dbURL)
