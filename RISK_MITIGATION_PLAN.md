@@ -4,11 +4,13 @@ This document outlines identified infrastructure and dependency risks for the `t
 
 ## Mitigations in Place
 
-1.  **No Automated Health Checks or Recovery:**
-    *   **Mitigation:** An HTTP `/healthz` endpoint has been added to the Go application. This endpoint checks the database connection and returns a 200 OK status if the database is reachable. The `docker-compose.yml` file has been updated to use this health check, allowing Docker to automatically restart unhealthy containers.
+1.  **Implement Health Checks**
+    *   **Status:** Complete
+    *   **Description:** An HTTP `/healthz` endpoint was added to the Go application to check database connectivity. `docker-compose.yml` was updated to configure Docker health checks, and `curl` was added to the `Dockerfile` for execution of the health check command within the container.
 
-2.  **Containerization for Production:**
-    *   **Mitigation:** The `Dockerfile` has been improved for production use. It now uses a multi-stage build to create a small final image based on `alpine:latest`. The application is run as a non-root user (`appuser`) to enhance security. `curl` is also installed in the final image to support the health check.
+2.  **Containerize for Production**
+    *   **Status:** Complete
+    *   **Description:** The `Dockerfile` was updated to use a multi-stage build, run the application as a non-root user (`appuser`), and optimize the image size.
 
 3.  **Manual and Error-Prone Deployments (CI/CD):**
     *   **Mitigation:** A basic CI/CD pipeline has been created using GitHub Actions (`.github/workflows/build-test.yml`). This pipeline automatically builds and tests the application on every push or pull request to the `main` branch. This reduces the risk of manual deployment errors and ensures a consistent build process.
