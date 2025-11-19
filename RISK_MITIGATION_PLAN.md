@@ -1,3 +1,17 @@
+| Risk | Probability | Blast-Radius | Cost | Status | Mitigation Plan |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| Single Point of Failure (SPOF) - Application | **High** | 🔥🔥 | 💸💸 | 🟡 Pending | [#1.-Mitigating-Application-SPOF-and-Lack-of-Scalability](#1-mitigating-application-spof-and-lack-of-scalability) |
+| Single Point of Failure (SPOF) - Database | **High** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#2.-Mitigating-Database-SPOF-and-Data-Loss/Durability-Issues](#2-mitigating-database-spof-and-data-lossdurability-issues) |
+| Lack of Scalability | **High** | 🔥🔥 | 💸💸 | 🟡 Pending | [#1.-Mitigating-Application-SPOF-and-Lack-of-Scalability](#1-mitigating-application-spof-and-lack-of-scalability) |
+| Insecure and Inflexible Configuration | **High** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#4.-Mitigating-Insecure-and-Inflexible-Configuration](#4-mitigating-insecure-and-inflexible-configuration) |
+| DDoS attacks or other security concerns | **Medium** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#8.-Mitigating-DDoS-and-Other-Security-Concerns](#8-mitigating-ddos-and-other-security-concerns) |
+| Zonal and Regional Failure | **Medium** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#3.-Mitigating-Zonal-and-Regional-Failure](#3-mitigating-zonal-and-regional-failure) |
+| Data Loss and Durability | **Medium** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#2.-Mitigating-Database-SPOF-and-Data-Loss/Durability-Issues](#2-mitigating-database-spof-and-data-lossdurability-issues) |
+| CI/CD Infrastructure or Service Failure | **Low** | 🔥 | 💸 | 🟡 Pending | [#7.-Mitigating-CI/CD-Infrastructure-Failure](#7-mitigating-cicd-infrastructure-failure) |
+| Total GCP Failure or Multi-Region Outage | **Very Low** | 🔥🔥🔥🔥 | 💸💸💸💸 | 🟡 Pending | [#6.-Mitigating-Total-GCP-Failure](#6-mitigating-total-gcp-failure) |
+
+---
+
 # Risk Mitigation Plan for todo-app-go
 
 This document outlines identified infrastructure and dependency risks for the `todo-app-go` project and proposes a mitigation plan to enhance its reliability, scalability, and observability.
