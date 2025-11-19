@@ -12,3 +12,4 @@
 # Go module cache
 vendor/
 terraform/.terraform/
+*.tfvars
