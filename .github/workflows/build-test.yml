@@ -1,0 +1,36 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22.x' # Use the version of Go specified in go.mod or Dockerfile
+
+    - name: Build Go application
+      run: |
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
+
+    - name: Run Go tests
+      run: go test -v ./...
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      run: |
+        docker build -t todo-app-go:latest .
