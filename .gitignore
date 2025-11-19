@@ -13,3 +13,5 @@
 vendor/
 terraform/.terraform/
 *.tfvars
+
+.vscode/
