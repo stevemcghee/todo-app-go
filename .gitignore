@@ -10,4 +10,5 @@
 .vscode/
 
 # Go module cache
-# vendor/
+vendor/
+terraform/.terraform/
