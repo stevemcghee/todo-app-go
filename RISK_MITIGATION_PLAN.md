@@ -1,14 +1,20 @@
 | Risk | Probability | Blast-Radius | Cost | Status | Mitigation Plan |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| Single Point of Failure (SPOF) - Application | **High** | 🔥🔥 | 💸💸 | 🟡 Pending | [#1.-Mitigating-Application-SPOF-and-Lack-of-Scalability](#1-mitigating-application-spof-and-lack-of-scalability) |
-| Single Point of Failure (SPOF) - Database | **High** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#2.-Mitigating-Database-SPOF-and-Data-Loss/Durability-Issues](#2-mitigating-database-spof-and-data-lossdurability-issues) |
-| Lack of Scalability | **High** | 🔥🔥 | 💸💸 | 🟡 Pending | [#1.-Mitigating-Application-SPOF-and-Lack-of-Scalability](#1-mitigating-application-spof-and-lack-of-scalability) |
-| Insecure and Inflexible Configuration | **High** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#4.-Mitigating-Insecure-and-Inflexible-Configuration](#4-mitigating-insecure-and-inflexible-configuration) |
-| DDoS attacks or other security concerns | **Medium** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#8.-Mitigating-DDoS-and-Other-Security-Concerns](#8-mitigating-ddos-and-other-security-concerns) |
-| Zonal and Regional Failure | **Medium** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#3.-Mitigating-Zonal-and-Regional-Failure](#3-mitigating-zonal-and-regional-failure) |
-| Data Loss and Durability | **Medium** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#2.-Mitigating-Database-SPOF-and-Data-Loss/Durability-Issues](#2-mitigating-database-spof-and-data-lossdurability-issues) |
-| CI/CD Infrastructure or Service Failure | **Low** | 🔥 | 💸 | 🟡 Pending | [#7.-Mitigating-CI/CD-Infrastructure-Failure](#7-mitigating-cicd-infrastructure-failure) |
-| Total GCP Failure or Multi-Region Outage | **Very Low** | 🔥🔥🔥🔥 | 💸💸💸💸 | 🟡 Pending | [#6.-Mitigating-Total-GCP-Failure](#6-mitigating-total-gcp-failure) |
+| **Mitigated Risks** | | | | | |
+| No Automated Health Checks or Recovery | **High** | 🔥🔥 | 💸💸 | ✅ Complete | [#mitigations-in-place](#mitigations-in-place) |
+| Containerization for Production | **High** | 🔥🔥 | 💸 | ✅ Complete | [#mitigations-in-place](#mitigations-in-place) |
+| Manual and Error-Prone Deployments (CI/CD) | **High** | 🔥🔥 | 💸 | ✅ Complete | [#mitigations-in-place](#mitigations-in-place) |
+| Observability Failures | **High** | 🔥🔥🔥 | 💸💸 | ✅ Complete | [#mitigations-in-place](#mitigations-in-place) |
+| **Remaining Risks** | | | | | |
+| Single Point of Failure (SPOF) - Application | **High** | 🔥🔥 | 💸💸 | 🟡 Pending | [#1.-mitigating-application-spof-and-lack-of-scalability](#1-mitigating-application-spof-and-lack-of-scalability) |
+| Single Point of Failure (SPOF) - Database | **High** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#2.-mitigating-database-spof-and-data-loss/durability-issues](#2-mitigating-database-spof-and-data-lossdurability-issues) |
+| Lack of Scalability | **High** | 🔥🔥 | 💸💸 | 🟡 Pending | [#1.-mitigating-application-spof-and-lack-of-scalability](#1-mitigating-application-spof-and-lack-of-scalability) |
+| Insecure and Inflexible Configuration | **High** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#4.-mitigating-insecure-and-inflexible-configuration](#4-mitigating-insecure-and-inflexible-configuration) |
+| DDoS attacks or other security concerns | **Medium** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#8.-mitigating-ddos-and-other-security-concerns](#8-mitigating-ddos-and-other-security-concerns) |
+| Zonal and Regional Failure | **Medium** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#3.-mitigating-zonal-and-regional-failure](#3-mitigating-zonal-and-regional-failure) |
+| Data Loss and Durability | **Medium** | 🔥🔥🔥 | 💸💸💸 | 🟡 Pending | [#2.-mitigating-database-spof-and-data-loss/durability-issues](#2-mitigating-database-spof-and-data-lossdurability-issues) |
+| CI/CD Infrastructure or Service Failure | **Low** | 🔥 | 💸 | 🟡 Pending | [#7.-mitigating-ci/cd-infrastructure-failure](#7-mitigating-cicd-infrastructure-failure) |
+| Total GCP Failure or Multi-Region Outage | **Very Low** | 🔥🔥🔥🔥 | 💸💸💸💸 | 🟡 Pending | [#6.-mitigating-total-gcp-failure](#6-mitigating-total-gcp-failure) |
 
 ---
 
