@@ -111,8 +111,8 @@ resource "google_sql_database_instance" "main_instance" {
     availability_type = "ZONAL"
     ip_configuration {
       ipv4_enabled = true
-      require_ssl  = true
     }
+    require_ssl = true
     backup_configuration {
       enabled            = true
       start_time         = "03:00"
