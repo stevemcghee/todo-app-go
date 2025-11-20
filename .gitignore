@@ -16,3 +16,4 @@ terraform/.terraform/
 
 .vscode/
 terraform/gcp-sa-key.json
+terraform/terraform.tfstate.backup
