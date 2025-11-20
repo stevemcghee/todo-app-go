@@ -45,6 +45,12 @@ resource "google_project_service" "iam_api" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "artifactregistry_api" {
+  project = var.project_id
+  service = "artifactregistry.googleapis.com"
+  disable_on_destroy = false
+}
+
 # Create a GKE cluster
 resource "google_container_cluster" "primary" {
   name                     = var.cluster_name
@@ -136,5 +142,13 @@ resource "google_sql_user" "users" {
   name     = var.db_user
   instance = google_sql_database_instance.main_instance.name
   password = var.db_password
+}
+
+# Create Artifact Registry Repository
+resource "google_artifact_registry_repository" "my-repo" {
+  location      = var.region
+  repository_id = "todo-app-go"
+  description   = "Docker repository for todo-app-go"
+  format        = "DOCKER"
 }
 
