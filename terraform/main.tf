@@ -111,11 +111,7 @@ resource "google_sql_database_instance" "main_instance" {
     availability_type = "ZONAL"
     ip_configuration {
       ipv4_enabled = true
-      ipv4_enabled = true
-      require_ssl = true # Best practice
-      authorized_networks {
-        value = "0.0.0.0/0" # WARNING: Allows connections from any IP address. Restrict in production!
-      }
+      require_ssl  = true
     }
     backup_configuration {
       enabled            = true

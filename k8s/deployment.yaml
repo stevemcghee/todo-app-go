@@ -21,7 +21,7 @@ spec:
         - containerPort: 8080
         env:
         - name: DB_HOST
-          value: "127.0.0.1" # Will be updated for Cloud SQL Proxy
+          value: "127.0.0.1"
         - name: DB_PORT
           value: "5432"
         - name: DB_USER
@@ -42,3 +42,14 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
+      - name: cloudsql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.17
+        command:
+          - "/cloud_sql_proxy"
+          - "-instances=${INSTANCE_CONNECTION_NAME}=tcp:5432"
+        securityContext:
+          runAsNonRoot: true
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
