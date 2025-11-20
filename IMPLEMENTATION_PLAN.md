@@ -6,20 +6,20 @@ The strategy is to use a series of feature branches, where each branch represent
 
 ---
 
-### 1. Branch: `feature/gke-base-deployment`
+### 1. Branch: `feature/gke-base-deployment` (Completed)
 
 *   **Goal:** Get the application running on a basic GKE cluster with a managed database. This is the foundational step to move away from the local Docker environment.
 *   **Tasks:**
-    1.  Update Terraform scripts to provision a basic GKE cluster and a single-zone Cloud SQL instance.
-    2.  Create the initial Kubernetes manifests (`deployment.yaml`, `service.yaml`) for the todo-app.
-    3.  Update the GitHub Actions CI/CD pipeline to:
+    1.  [x] Update Terraform scripts to provision a basic GKE cluster and a single-zone Cloud SQL instance.
+    2.  [x] Create the initial Kubernetes manifests (`deployment.yaml`, `service.yaml`) for the todo-app.
+    3.  [x] Update the GitHub Actions CI/CD pipeline to:
         *   Build and publish the Docker image to Google Artifact Registry.
         *   Authenticate to GKE and apply the Kubernetes manifests.
 *   **Risks Addressed:** This branch lays the groundwork but doesn't fully mitigate the major risks yet. It serves as a "walking skeleton" for the production environment.
 
 ---
 
-### 2. Branch: `feature/ha-scalability-hardening` (Branches from `feature/gke-base-deployment`)
+### 2. Branch: `feature/ha-scalability-hardening` (Current Focus)
 
 *   **Goal:** Make the base deployment highly available, scalable, and secure.
 *   **Tasks:**
