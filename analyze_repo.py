@@ -88,8 +88,14 @@ def generate_chart(report):
         import matplotlib.pyplot as plt
         import numpy as np
         
-        branches = list(report['branches'].keys())
-        categories = sorted(list({k for b in report['branches'].values() for k in b.keys()}))
+        # Combine main and branches, filtering out empty ones
+        data = {'main': report['main']}
+        for name, stats in report['branches'].items():
+            if stats and sum(stats.values()) > 0:
+                data[name] = stats
+        
+        branches = list(data.keys())
+        categories = sorted(list({k for b in data.values() for k in b.keys()}))
         
         if not categories:
             print("No data to plot.")
@@ -98,10 +104,10 @@ def generate_chart(report):
         x = np.arange(len(branches))
         width = 0.8 / len(categories)
         
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(12, 6))
         
         for i, cat in enumerate(categories):
-            vals = [report['branches'][b].get(cat, 0) for b in branches]
+            vals = [data[b].get(cat, 0) for b in branches]
             offset = width * i
             rects = ax.bar(x + offset, vals, width, label=cat)
             
