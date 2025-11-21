@@ -76,26 +76,24 @@ def analyze_branches(branches):
 def main():
     main_stats = analyze_main()
     branches = ["feature/gke-base-deployment", "feature/ha-scalability-hardening", "feature/risk-mitigation"]
-    branch_diffs = analyze_branches(branches)
+    branch_stats = analyze_branches(branches)
     
-    # Calculate totals
+    # Calculate cumulative totals
+    cumulative_stats = {"main": main_stats}
+    
+    for branch in branches:
+        # Start with main's totals
+        cumulative = dict(main_stats)
+        # Apply this branch's changes (added - deleted) to main's totals
+        for cat, changes in branch_stats.get(branch, {}).items():
+            cumulative[cat] = cumulative.get(cat, 0) + changes['added'] - changes['deleted']
+        cumulative_stats[branch] = cumulative
+    
     report = {
         "main": main_stats,
-        "branches": {}
+        "branches_delta": branch_stats,
+        "cumulative": cumulative_stats
     }
-    
-    for branch, diffs in branch_diffs.items():
-        # Start with main stats
-        total_stats = main_stats.copy()
-        has_changes = False
-        for cat, changes in diffs.items():
-            if changes['added'] > 0 or changes['deleted'] > 0:
-                has_changes = True
-            total_stats[cat] = total_stats.get(cat, 0) + changes['added'] - changes['deleted']
-        
-        # Only add branch if it has changes
-        if has_changes:
-            report['branches'][branch] = total_stats
     
     print(json.dumps(report, indent=2))
     
@@ -106,9 +104,8 @@ def generate_chart(report):
         import matplotlib.pyplot as plt
         import numpy as np
         
-        # Prepare data: Main + Branches
-        data = {'main': report['main']}
-        data.update(report['branches'])
+        # Use cumulative data for the chart
+        data = report['cumulative']
         
         branches = list(data.keys())
         categories = sorted(list({k for b in data.values() for k in b.keys()}))

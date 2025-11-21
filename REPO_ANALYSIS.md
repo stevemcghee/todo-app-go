@@ -1,71 +1,111 @@
-# Repository Code Analysis
-
-This report analyzes the `todo-app-go` repository, categorizing the code by function (Application, IaC, Documentation, etc.) and comparing the `main` branch with active feature branches.
-
-## Methodology
-- **Application Code**: Go source files, HTML templates, static assets.
-- **Infrastructure as Code (IaC)**: Terraform configurations, Kubernetes manifests, Dockerfiles.
-- **CI/CD**: GitHub Actions workflows.
-- **Documentation**: Markdown files, text documentation.
-- **Config**: Configuration files (`go.mod`, `.env`, etc.).
-- **Database**: SQL initialization scripts.
-
-## Main Branch Overview
-
-The `main` branch represents the current stable state of the application.
-
-### Code Distribution (Lines of Code)
-
-| Category | Lines of Code | Description |
-|----------|---------------|-------------|
-| **Application Code** | 392 | Core Go logic, templates, and static files. |
-| **Documentation** | 277 | Project docs, plans, and guides. |
-| **CI/CD** | 69 | GitHub Actions workflows. |
-| **IaC** | 64 | Basic Docker and Kubernetes setup. |
-| **Config** | 29 | Project configuration. |
-| **Database** | 9 | SQL schemas. |
-| **Other** | 31 | Miscellaneous files. |
-
-### Visualization
-
-```mermaid
-pie title "Main Branch Code Distribution (LOC)"
-    "Application Code" : 392
-    "Documentation" : 277
-    "CI/CD" : 69
-    "IaC" : 64
-    "Config" : 29
-    "Database" : 9
-    "Other" : 31
-```
-
-## Feature Branch Analysis
-
-This section highlights the *additional* code introduced in feature branches compared to `main`.
-
-### feature/gke-base-deployment
-This branch focuses on establishing the GKE infrastructure.
-
-- **IaC**: +3,423 LOC. Significant addition of Terraform modules and Kubernetes manifests.
-- **Documentation**: +305 LOC. Updates to deployment guides and plans.
-- **CI/CD**: +78 LOC. Enhanced pipelines for GKE deployment.
-- **Application Code**: +33 LOC. Minor adjustments for the new environment.
-
-### feature/risk-mitigation
-This branch addresses identified project risks.
-
-- **IaC**: +263 LOC. Security hardening and infrastructure adjustments.
-- **Documentation**: +216 LOC. Risk mitigation plans and security docs.
-- **CI/CD**: +36 LOC. Security scanning and checks.
-- **Application Code**: +33 LOC.
-
-### feature/ha-scalability-hardening
-*Currently has no changes relative to main.*
-
-### Branch Comparison (Added LOC)
-
-![Branch Comparison](branch_comparison.png)
-
-
-## Conclusion
-The repository is currently heavy on **Infrastructure as Code** development, particularly in the `feature/gke-base-deployment` branch, which introduces a substantial amount of Terraform/Kubernetes configuration (over 3,000 lines). The core **Application Code** remains relatively small (~400 lines), indicating a microservice or simple utility that is being wrapped in a robust, production-grade infrastructure.
+Analyzing main branch...
+Error reading branch_comparison.png: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
+Analyzing branch feature/gke-base-deployment...
+Analyzing branch feature/ha-scalability-hardening...
+Analyzing branch feature/risk-mitigation...
+{
+  "main": {
+    "Other": 178,
+    "CI/CD": 69,
+    "Config": 29,
+    "IaC": 64,
+    "Documentation": 348,
+    "Database": 9,
+    "Application Code": 392
+  },
+  "branches_delta": {
+    "feature/gke-base-deployment": {
+      "CI/CD": {
+        "added": 92,
+        "deleted": 0
+      },
+      "Config": {
+        "added": 41,
+        "deleted": 1
+      },
+      "IaC": {
+        "added": 3507,
+        "deleted": 0
+      },
+      "Documentation": {
+        "added": 532,
+        "deleted": 0
+      },
+      "Other": {
+        "added": 85,
+        "deleted": 0
+      },
+      "Application Code": {
+        "added": 66,
+        "deleted": 15
+      },
+      "Scripts": {
+        "added": 56,
+        "deleted": 0
+      }
+    },
+    "feature/ha-scalability-hardening": {},
+    "feature/risk-mitigation": {
+      "CI/CD": {
+        "added": 36,
+        "deleted": 0
+      },
+      "Config": {
+        "added": 39,
+        "deleted": 1
+      },
+      "IaC": {
+        "added": 263,
+        "deleted": 0
+      },
+      "Documentation": {
+        "added": 216,
+        "deleted": 0
+      },
+      "Application Code": {
+        "added": 33,
+        "deleted": 13
+      }
+    }
+  },
+  "cumulative": {
+    "main": {
+      "Other": 178,
+      "CI/CD": 69,
+      "Config": 29,
+      "IaC": 64,
+      "Documentation": 348,
+      "Database": 9,
+      "Application Code": 392
+    },
+    "feature/gke-base-deployment": {
+      "Other": 263,
+      "CI/CD": 161,
+      "Config": 69,
+      "IaC": 3571,
+      "Documentation": 880,
+      "Database": 9,
+      "Application Code": 443,
+      "Scripts": 56
+    },
+    "feature/ha-scalability-hardening": {
+      "Other": 178,
+      "CI/CD": 69,
+      "Config": 29,
+      "IaC": 64,
+      "Documentation": 348,
+      "Database": 9,
+      "Application Code": 392
+    },
+    "feature/risk-mitigation": {
+      "Other": 178,
+      "CI/CD": 105,
+      "Config": 67,
+      "IaC": 327,
+      "Documentation": 564,
+      "Database": 9,
+      "Application Code": 412
+    }
+  }
+}
+Chart saved to branch_comparison.png
