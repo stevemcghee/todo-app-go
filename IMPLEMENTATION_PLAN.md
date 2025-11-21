@@ -25,18 +25,15 @@ The strategy is to use a series of feature branches, where each branch represent
 
 ### 2. Branch: `3-ha-scalability` (Current Focus)
 
-*   **Goal:** Make the base deployment highly available, scalable, and secure.
+*   **Goal:** Make the base deployment highly available and scalable.
 *   **Tasks:**
     1.  Upgrade the GKE cluster in Terraform to be a *regional* cluster (spanning multiple zones).
     2.  Upgrade the Cloud SQL instance in Terraform to use the High Availability (HA) configuration.
     3.  Implement a Horizontal Pod Autoscaler (HPA) in Kubernetes to automatically scale the application.
-    4.  Implement Workload Identity and use Secret Manager for database credentials, removing them from environment variables.
-    5.  Update the Go application to fetch credentials from Secret Manager.
 *   **Risks Addressed:**
     *   ✅ Single Point of Failure (Application & Database)
     *   ✅ Lack of Scalability
     *   ✅ Zonal Failure
-    *   ✅ Insecure and Inflexible Configuration
 
 ---
 
@@ -44,17 +41,37 @@ The strategy is to use a series of feature branches, where each branch represent
 
 *   **Goal:** Protect the application from external threats and improve monitoring.
 *   **Tasks:**
-    1.  Use Terraform to provision a Google Cloud Load Balancer with Google Cloud Armor (WAF) to protect against DDoS and other attacks.
-    2.  Implement a Content Security Policy (CSP) in the `index.html` template.
-    3.  Integrate a security scanner (like `gosec` or `Trivy`) into the CI/CD pipeline.
+    1.  Implement Workload Identity and use Secret Manager for database credentials, removing them from environment variables.
+    2.  Update the Go application to fetch credentials from Secret Manager.
+    3.  Use Terraform to provision a Google Cloud Load Balancer with Google Cloud Armor (WAF) to protect against DDoS and other attacks.
+    4.  Implement a Content Security Policy (CSP) in the `index.html` template.
+    5.  Integrate a security scanner (like `gosec` or `Trivy`) into the CI/CD pipeline.
 *   **Risks Addressed:**
+    *   ✅ Insecure and Inflexible Configuration
     *   ✅ DDoS attacks or other security concerns
 
 ---
 
-### 4. Branch: `5-disaster-recovery` (Branches from `3-ha-scalability`)
+### 3.5. Branch: `4.5-advanced-deployments` (Branches from `4-security-observability`)
 
-*   **Goal:** Prepare for a full regional outage. This is a more advanced, parallel track to the security work.
+*   **Goal:** Implement multi-stage CI/CD and progressive delivery strategies for safer, more controlled deployments.
+*   **Tasks:**
+    1.  Create a staging environment (separate GKE namespace or cluster) in Terraform.
+    2.  Update CI/CD pipeline to deploy to staging first, then production.
+    3.  Implement canary deployments using Flagger or native Kubernetes strategies.
+    4.  Add deployment approval gates for production deployments.
+    5.  Implement automated rollback on deployment failures or error rate spikes.
+    6.  Add smoke tests and integration tests that run post-deployment.
+*   **Risks Addressed:**
+    *   ✅ Deployment-induced outages
+    *   ✅ Inability to quickly rollback bad deployments
+    *   ✅ Lack of deployment confidence and testing
+
+---
+
+### 4. Branch: `5-disaster-recovery` (Branches from `4.5-advanced-deployments`)
+
+*   **Goal:** Prepare for a full regional outage with multi-region deployment.
 *   **Tasks:**
     1.  Update Terraform to be able to replicate the entire GKE and Cloud SQL setup in a second region.
     2.  Configure the Cloud Load Balancer to manage traffic between the two regions, failing over if one region becomes unhealthy.
