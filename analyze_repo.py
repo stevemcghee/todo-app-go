@@ -105,7 +105,8 @@ def generate_chart(report):
             offset = width * i
             rects = ax.bar(x + offset, vals, width, label=cat)
             
-        ax.set_ylabel('Added Lines of Code')
+        ax.set_ylabel('Added Lines of Code (Log Scale)')
+        ax.set_yscale('log')
         ax.set_title('Code Additions by Branch and Category')
         ax.set_xticks(x + width * (len(categories) - 1) / 2)
         ax.set_xticklabels(branches, rotation=15, ha='right')
