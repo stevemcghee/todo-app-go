@@ -66,6 +66,21 @@ resource "google_container_cluster" "primary" {
     services_ipv4_cidr_block = "/22"
   }
 
+  # Enable Cloud Logging for container logs
+  logging_service = "logging.googleapis.com/kubernetes"
+  logging_config {
+    enable_components = ["SYSTEM_COMPONENTS", "WORKLOADS"]
+  }
+
+  # Enable Cloud Monitoring
+  monitoring_service = "monitoring.googleapis.com/kubernetes"
+  monitoring_config {
+    enable_components = ["SYSTEM_COMPONENTS"]
+    managed_prometheus {
+      enabled = true
+    }
+  }
+
   master_auth {
     client_certificate_config {
       issue_client_certificate = false
