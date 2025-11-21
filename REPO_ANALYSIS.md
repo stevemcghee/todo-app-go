@@ -2,10 +2,21 @@
 
 This analysis tracks the evolution of the codebase from the main branch to the production-ready GKE deployment.
 
+## Branch Progression
+
+```
+main → 1-risk-analysis → 2-gke-cicd-base → 3-ha-scalability
+```
+
+- **main**: Simple Docker-based local development setup
+- **1-risk-analysis**: Planning branch with risk identification and mitigation strategies
+- **2-gke-cicd-base**: Production GKE deployment with CI/CD automation
+- **3-ha-scalability**: High availability and scalability enhancements (pending)
+
 ## Methodology
 
 - **Main Branch**: Baseline measurement of all code in the main branch
-- **GKE Base Deployment**: Cumulative total including main + all GKE deployment infrastructure
+- **2-gke-cicd-base**: Cumulative total including main + all GKE deployment infrastructure
 
 ## Code Categories
 
@@ -32,7 +43,7 @@ This analysis tracks the evolution of the codebase from the main branch to the p
 | Database | 9 |
 | **TOTAL** | **1,112** |
 
-### GKE Base Deployment
+### 2-gke-cicd-base
 | Category | Lines | Change from Main |
 |----------|-------|------------------|
 | **IaC** | **3,571** | **+3,507** |
@@ -56,7 +67,7 @@ This analysis tracks the evolution of the codebase from the main branch to the p
 
 ![Code Growth: Main to GKE Deployment](branch_comparison.png)
 
-The stacked bar chart shows the cumulative growth from Main to GKE Base Deployment. Each colored segment represents a code category, with the total height showing complete line count.
+The stacked bar chart shows the cumulative growth from Main to 2-gke-cicd-base. Each colored segment represents a code category, with the total height showing complete line count.
 
 ## Summary
 

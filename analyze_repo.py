@@ -75,8 +75,8 @@ def analyze_branches(branches):
 
 def main():
     main_stats = analyze_main()
-    # Only analyze gke-base-deployment (risk-mitigation is an earlier parallel branch)
-    gke_base_stats = analyze_branches(["feature/gke-base-deployment"])
+    # Only analyze 2-gke-cicd-base (1-risk-analysis is a planning branch)
+    gke_base_stats = analyze_branches(["2-gke-cicd-base"])
     
     # Calculate cumulative totals
     cumulative_stats = {}
@@ -86,9 +86,9 @@ def main():
     
     # GKE Base = Main + gke-base changes
     gke_cumulative = dict(main_stats)
-    for cat, changes in gke_base_stats.get("feature/gke-base-deployment", {}).items():
+    for cat, changes in gke_base_stats.get("2-gke-cicd-base", {}).items():
         gke_cumulative[cat] = gke_cumulative.get(cat, 0) + changes['added'] - changes['deleted']
-    cumulative_stats["feature/gke-base-deployment"] = gke_cumulative
+    cumulative_stats["2-gke-cicd-base"] = gke_cumulative
     
     report = {
         "main": main_stats,
@@ -106,12 +106,12 @@ def generate_chart(report):
         import numpy as np
         
         # Use cumulative data for the chart - show progression: main -> gke-base
-        branch_order = ["main", "feature/gke-base-deployment"]
+        branch_order = ["main", "2-gke-cicd-base"]
         data = {k: report['cumulative'][k] for k in branch_order}
         
         branches = list(data.keys())
         # Rename for display
-        branch_labels = ["Main", "GKE Base Deployment"]
+        branch_labels = ["Main", "GKE CI/CD Base"]
         categories = sorted(list({k for b in data.values() for k in b.keys()}))
         
         if not categories:
