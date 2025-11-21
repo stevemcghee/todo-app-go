@@ -6,7 +6,7 @@ The strategy is to use a series of feature branches, where each branch represent
 
 ---
 
-### 1. Branch: `feature/gke-base-deployment` (Completed)
+### 1. Branch: `2-gke-cicd-base` (Completed)
 
 *   **Goal:** Get the application running on a basic GKE cluster with a managed database. This is the foundational step to move away from the local Docker environment.
 *   **Tasks:**
@@ -23,7 +23,7 @@ The strategy is to use a series of feature branches, where each branch represent
 
 ---
 
-### 2. Branch: `feature/ha-scalability-hardening` (Current Focus)
+### 2. Branch: `3-ha-scalability` (Current Focus)
 
 *   **Goal:** Make the base deployment highly available, scalable, and secure.
 *   **Tasks:**
@@ -40,7 +40,7 @@ The strategy is to use a series of feature branches, where each branch represent
 
 ---
 
-### 3. Branch: `feature/security-and-observability` (Branches from `feature/ha-scalability-hardening`)
+### 3. Branch: `4-security-observability` (Branches from `3-ha-scalability`)
 
 *   **Goal:** Protect the application from external threats and improve monitoring.
 *   **Tasks:**
@@ -52,7 +52,7 @@ The strategy is to use a series of feature branches, where each branch represent
 
 ---
 
-### 4. Branch: `feature/disaster-recovery-multi-region` (Branches from `feature/ha-scalability-hardening`)
+### 4. Branch: `5-disaster-recovery` (Branches from `3-ha-scalability`)
 
 *   **Goal:** Prepare for a full regional outage. This is a more advanced, parallel track to the security work.
 *   **Tasks:**
