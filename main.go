@@ -36,6 +36,13 @@ func main() {
 	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(jsonHandler))
 
+	// Verify template existence
+	if _, err := os.Stat("templates/index.html"); os.IsNotExist(err) {
+		slog.Error("templates/index.html not found!")
+	} else {
+		slog.Info("templates/index.html found")
+	}
+
 	// Panic recovery
 	defer func() {
 		if r := recover(); r != nil {
@@ -59,7 +66,7 @@ func main() {
 		slog.Error("Could not parse DATABASE_URL", "error", err)
 		os.Exit(1)
 	}
-	
+
 	safeURL := parsedURL.Redacted()
 	slog.Info("Connecting to database", "url", safeURL)
 
@@ -72,7 +79,6 @@ func main() {
 			slog.Info("Contents of /cloudsql:", "files", files)
 		}
 	}
-
 
 	slog.Info("Attempting to connect to database", "attempts", 5)
 	for i := 0; i < 5; i++ {
@@ -133,6 +139,7 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
+	slog.Info("Serving index.html", "path", r.URL.Path)
 	http.ServeFile(w, r, "templates/index.html")
 }
 
