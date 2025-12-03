@@ -5,22 +5,41 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log/slog" // Import slog
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
-
-	_ "github.com/lib/pq"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	"context"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+var (
+	httpRequestsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests",
+		},
+		[]string{"path", "method", "code"},
+	)
+	httpRequestDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Duration of HTTP requests in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"path", "method"},
+	)
 )
 
 type Todo struct {
@@ -125,8 +144,35 @@ func securityHeadersMiddleware(next http.Handler) http.Handler {
 		// Enable XSS protection (for older browsers)
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 
-		next.ServeHTTP(w, r)
+		start := time.Now()
+		rw := newResponseWriter(w)
+		next.ServeHTTP(rw, r)
+		duration := time.Since(start).Seconds()
+
+		// Record metrics
+		path := r.URL.Path
+		// Normalize path to avoid high cardinality
+		if strings.HasPrefix(path, "/todos/") && len(path) > 7 {
+			path = "/todos/:id"
+		}
+
+		httpRequestsTotal.WithLabelValues(path, r.Method, strconv.Itoa(rw.statusCode)).Inc()
+		httpRequestDuration.WithLabelValues(path, r.Method).Observe(duration)
 	})
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func newResponseWriter(w http.ResponseWriter) *responseWriter {
+	return &responseWriter{w, http.StatusOK}
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
 }
 
 func initDB(config DBConfig) {
