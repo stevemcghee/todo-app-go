@@ -87,14 +87,16 @@ func main() {
 	initDB(dbConfig) // Call the new initDB function
 	defer db.Close()
 
-	http.HandleFunc("/", serveIndex)
-	http.HandleFunc("/todos", handleTodos)
-	http.HandleFunc("/todos/", handleTodo)
-	http.HandleFunc("/healthz", healthzHandler)
-	http.Handle("/metrics", promhttp.Handler())
+	// Create a new ServeMux
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", serveIndex)
+	mux.HandleFunc("/todos", handleTodos)
+	mux.HandleFunc("/todos/", handleTodo)
+	mux.HandleFunc("/healthz", healthzHandler)
+	mux.Handle("/metrics", promhttp.Handler())
 
 	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -105,10 +107,26 @@ func main() {
 	}
 
 	slog.Info("Server starting", "port", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	// Wrap the mux with the security middleware
+	if err := http.ListenAndServe(":"+port, securityHeadersMiddleware(mux)); err != nil {
 		slog.Error("Server stopped unexpectedly", "error", err)
 		os.Exit(1)
 	}
+}
+
+func securityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Content Security Policy
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'")
+		// Prevent MIME type sniffing
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		// Prevent clickjacking
+		w.Header().Set("X-Frame-Options", "DENY")
+		// Enable XSS protection (for older browsers)
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func initDB(config DBConfig) {
@@ -168,7 +186,7 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Serving index.html", "path", r.URL.Path)
-	w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'")
+	// CSP is now handled by middleware
 	http.ServeFile(w, r, "templates/index.html")
 }
 

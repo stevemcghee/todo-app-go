@@ -90,3 +90,26 @@ jobs:
         kubectl delete job db-init --ignore-not-found
         
         kubectl apply -f k8s/
+  
+  security_scan:
+    runs-on: ubuntu-latest
+    needs: build # Run after build to ensure code compiles, though can run in parallel if desired.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: ./...
+
+      - name: Run Trivy vulnerability scanner (fs mode)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'

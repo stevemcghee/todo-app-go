@@ -17,7 +17,7 @@ spec:
       serviceAccountName: todo-app-sa
       containers:
       - name: todo-app-go
-        image: "us-central1-docker.pkg.dev/smcghee-todo-p15n-38a6/todo-app-go/todo-app-go:secret-refactor-v1"
+        image: "us-central1-docker.pkg.dev/smcghee-todo-p15n-38a6/todo-app-go/todo-app-go:phase4-security-v1"
         resources:
           requests:
             cpu: "100m"
@@ -25,8 +25,6 @@ spec:
           limits:
             cpu: "500m"
             memory: "512Mi"
-        ports:
-        - containerPort: 8080
         ports:
         - containerPort: 8080
         env: []
