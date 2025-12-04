@@ -29,6 +29,53 @@ If Cloud Deploy is unavailable, manually apply the previous Kubernetes manifests
    kubectl apply -f k8s/
    ```
 
+## Cloud Trace
+
+The application uses OpenTelemetry to export distributed traces to Cloud Trace.
+
+### Viewing Traces
+
+1. **Access Cloud Trace**:
+   - Go to Cloud Console → Trace → Trace List
+   - Filter by service name: `todo-app-go`
+
+2. **Analyze Request Flow**:
+   - Click on any trace to see the full request timeline
+   - View database query performance
+   - Identify slow operations or errors
+
+3. **Common Trace Queries**:
+   ```bash
+   # View traces with errors
+   Filter: HasError=true
+   
+   # View slow requests (>500ms)
+   Filter: LatencyMs>500
+   ```
+
+### Troubleshooting Trace Issues
+
+If traces aren't appearing:
+
+1. **Check permissions**:
+   ```bash
+   gcloud projects get-iam-policy $(gcloud config get-value project) \
+     --flatten="bindings[].members" \
+     --filter="bindings.members:serviceAccount:todo-app-sa@*" \
+     --format="table(bindings.role)"
+   ```
+   Should include `roles/cloudtrace.agent`
+
+2. **Check API is enabled**:
+   ```bash
+   gcloud services list --enabled --filter="name:cloudtrace.googleapis.com"
+   ```
+
+3. **Check application logs for export errors**:
+   ```bash
+   kubectl logs -l app=todo-app-go | grep "Cloud Trace"
+   ```
+
 ## Application Resilience Features
 
 ### Automatic Retries
@@ -187,6 +234,37 @@ kubectl patch cronjob todo-app-load-generator -p '{"spec":{"suspend":false}}'
    ```
 3. **Check IAM Permissions**:
    Ensure the Google Service Account has `roles/cloudsql.instanceUser`.
+
+### HTTP 403 Forbidden Errors
+
+**Symptoms**: POST/PUT/DELETE requests fail with 403, browser console shows "Forbidden".
+
+**Common Causes**:
+
+1. **Cloud Armor Security Policy Blocking Requests**:
+   ```bash
+   # Check if security policy is attached
+   gcloud compute backend-services list --filter="name~todo-app" \
+     --format="table(name,securityPolicy)"
+   ```
+   
+   If a security policy is attached and causing false positives:
+   ```bash
+   # Temporarily remove it
+   BACKEND_SERVICE=$(gcloud compute backend-services list --filter="name~todo-app" --format="value(name)")
+   gcloud compute backend-services update $BACKEND_SERVICE --global --security-policy=""
+   ```
+
+2. **Check Cloud Armor Logs**:
+   ```bash
+   gcloud logging read "resource.type=http_load_balancer AND jsonPayload.enforcedSecurityPolicy.name!=null" \
+     --limit=20 --format=json
+   ```
+
+3. **Content Security Policy (CSP) Issues**:
+   - Check browser console for CSP violations
+   - CSP is configured in `main.go` in `securityHeadersMiddleware`
+   - Current policy allows fonts, styles, and scripts from trusted sources
 
 ### High Load / Scaling Issues
 **Symptoms**: High latency, HPA maxed out.

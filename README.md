@@ -14,7 +14,11 @@ A simple To-Do list application built with Go and PostgreSQL. This application a
 *   **Persistent Storage**: To-Do items are stored in a PostgreSQL database.
 *   **High Availability**: Regional GKE cluster with read replicas
 *   **Resilience**: Automatic retries and circuit breakers for fault tolerance
-*   **Observability**: Prometheus metrics and Cloud Monitoring alerts
+*   **Observability**: 
+    - Prometheus metrics for HTTP requests and latency
+    - Business metrics (todos added, updated, deleted)
+    - Cloud Monitoring dashboards and SLO tracking
+    - Distributed tracing with Cloud Trace
 
 ## Architecture
 
@@ -24,11 +28,22 @@ A simple To-Do list application built with Go and PostgreSQL. This application a
 - **Read Replica**: Read traffic distributed to replica for better performance and availability
 - **Point-in-Time Recovery**: Database backups with PITR enabled
 
+### Observability
+- **Metrics**: Prometheus metrics exported at `/metrics` endpoint
+  - HTTP request count and duration by endpoint
+  - Business metrics: `todos_added_total`, `todos_updated_total`, `todos_deleted_total`
+- **Tracing**: OpenTelemetry integration with Cloud Trace
+  - Distributed tracing for all HTTP requests
+  - Database query performance tracking
+- **SLOs**: Availability (99.9%) and Latency (95% < 500ms) tracking
+- **Dashboards**: Custom Cloud Monitoring dashboard with system overview
+
 ### Infrastructure
 - **Compute**: Regional GKE cluster in `us-central1` (multi-zone)
 - **Database**: Cloud SQL PostgreSQL with HA configuration and read replica
 - **Deployment**: Cloud Deploy with canary releases
 - **Monitoring**: Google Cloud Monitoring + Managed Prometheus
+- **Security**: Workload Identity, IAM authentication, Content Security Policy
 
 ## Prerequisites
 
