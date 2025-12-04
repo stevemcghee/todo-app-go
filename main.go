@@ -12,16 +12,37 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/cenkalti/backoff/v4"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sony/gobreaker"
 )
 
-// ... (metrics definitions remain same) ...
+var (
+	httpRequestsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests",
+		},
+		[]string{"path", "method", "code"},
+	)
+	httpRequestDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Duration of HTTP requests in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"path", "method"},
+	)
+)
 
 // Todo represents a single todo item.
 type Todo struct {
@@ -84,7 +105,113 @@ func retryOperation(op func() error) error {
 	})
 }
 
-// ... (main function remains mostly same, but initDB changes) ...
+func main() {
+	fmt.Println("Raw stdout: Application starting...")
+
+	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+	slog.SetDefault(slog.New(jsonHandler))
+
+	if _, err := os.Stat("templates/index.html"); os.IsNotExist(err) {
+		slog.Error("templates/index.html not found!")
+	} else {
+		slog.Info("templates/index.html found")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("Application panicked", "panic", r)
+			os.Exit(1)
+		}
+	}()
+
+	slog.Info("Logger initialized")
+
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	if projectID == "" {
+		projectID = "smcghee-todo-p15n-38a6"
+	}
+	secretName := fmt.Sprintf("projects/%s/secrets/todo-app-secret/versions/latest", projectID)
+
+	secretValue, err := accessSecretVersion(secretName)
+	if err != nil {
+		slog.Error("Failed to fetch secret from Secret Manager", "error", err)
+		os.Exit(1)
+	} else {
+		slog.Info("Successfully fetched secret from Secret Manager")
+	}
+
+	var dbConfig DBConfig
+	if err := json.Unmarshal([]byte(secretValue), &dbConfig); err != nil {
+		slog.Error("Failed to parse secret JSON", "error", err)
+		os.Exit(1)
+	}
+
+	initDB(dbConfig)
+	defer db.Close()
+	if dbRead != db {
+		defer dbRead.Close()
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", serveIndex)
+	mux.HandleFunc("/todos", handleTodos)
+	mux.HandleFunc("/todos/", handleTodo)
+	mux.HandleFunc("/healthz", healthzHandler)
+	mux.Handle("/metrics", promhttp.Handler())
+
+	fs := http.FileServer(http.Dir("./static"))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+		slog.Info("PORT environment variable not set, defaulting to 8080")
+	} else {
+		slog.Info("PORT environment variable set", "port", port)
+	}
+
+	slog.Info("Server starting", "port", port)
+	if err := http.ListenAndServe(":"+port, securityHeadersMiddleware(mux)); err != nil {
+		slog.Error("Server stopped unexpectedly", "error", err)
+		os.Exit(1)
+	}
+}
+
+func securityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+
+		start := time.Now()
+		rw := newResponseWriter(w)
+		next.ServeHTTP(rw, r)
+		duration := time.Since(start).Seconds()
+
+		path := r.URL.Path
+		if strings.HasPrefix(path, "/todos/") && len(path) > 7 {
+			path = "/todos/:id"
+		}
+
+		httpRequestsTotal.WithLabelValues(path, r.Method, strconv.Itoa(rw.statusCode)).Inc()
+		httpRequestDuration.WithLabelValues(path, r.Method).Observe(duration)
+	})
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func newResponseWriter(w http.ResponseWriter) *responseWriter {
+	return &responseWriter{w, http.StatusOK}
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
 
 func initDB(config DBConfig) {
 	var err error
@@ -176,11 +303,38 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-// ... (serveIndex remains same) ...
+func serveIndex(w http.ResponseWriter, r *http.Request) {
+	slog.Info("Serving index.html", "path", r.URL.Path)
+	http.ServeFile(w, r, "templates/index.html")
+}
 
-// ... (handleTodos remains same) ...
+func handleTodos(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		getTodos(w, r)
+	case http.MethodPost:
+		addTodo(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
 
-// ... (handleTodo remains same) ...
+func handleTodo(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.URL.Path[len("/todos/"):])
+	if err != nil {
+		http.Error(w, "Invalid todo ID", http.StatusBadRequest)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodPut:
+		updateTodo(w, r, id)
+	case http.MethodDelete:
+		deleteTodo(w, r, id)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
 
 func getTodos(w http.ResponseWriter, r *http.Request) {
 	var todos []Todo
@@ -283,8 +437,6 @@ func deleteTodo(w http.ResponseWriter, r *http.Request, id int) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
-
-// ... (accessSecretVersion remains same) ...
 
 func accessSecretVersion(name string) (string, error) {
 	ctx := context.Background()
