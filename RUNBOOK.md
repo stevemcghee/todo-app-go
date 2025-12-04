@@ -127,6 +127,50 @@ When an SLO burn rate alert fires:
    - Document root cause and remediation
    - Review and update mitigation strategies
 
+## Load Generator
+
+A synthetic load generator runs continuously to:
+- Validate SLO monitoring is working
+- Keep application warm and connection pools active
+- Generate baseline metrics data
+- Detect issues proactively
+
+**Configuration**:
+- Runs every minute via Kubernetes CronJob
+- Generates 2 requests per minute:
+  - GET /todos (exercises read replica)
+  - GET /healthz (validates liveness)
+
+**Monitoring**:
+```bash
+# Check load generator status
+kubectl get cronjob todo-app-load-generator
+
+# View recent job runs
+kubectl get jobs | grep load-generator
+
+# Check logs from last run
+kubectl logs -l app=load-generator --tail=20
+```
+
+**Adjusting Load**:
+To change request frequency, edit `k8s/load-generator.yaml`:
+```bash
+# Edit the schedule (currently: */1 * * * * = every minute)
+kubectl edit cronjob todo-app-load-generator
+
+# Or modify the number of requests in the curl loop
+```
+
+**Disabling**:
+```bash
+# Suspend load generation
+kubectl patch cronjob todo-app-load-generator -p '{"spec":{"suspend":true}}'
+
+# Resume
+kubectl patch cronjob todo-app-load-generator -p '{"spec":{"suspend":false}}'
+```
+
 ## Troubleshooting
 
 ### Database Connectivity Issues
