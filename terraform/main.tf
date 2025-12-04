@@ -81,6 +81,12 @@ resource "google_project_service" "monitoring_api" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "cloudtrace_api" {
+  project = var.project_id
+  service = "cloudtrace.googleapis.com"
+  disable_on_destroy = false
+}
+
 # Create a GKE cluster
 resource "google_container_cluster" "primary" {
   name                     = var.cluster_name
