@@ -52,32 +52,52 @@ type Todo struct {
 }
 
 // DBConfig holds database connection parameters.
+// For resilience, we support separate read and write endpoints:
+// - DBHost/DBPort: Primary database (handles writes and reads)
+// - DBReadHost/DBReadPort: Read replica (handles reads only)
+// If read replica is unavailable, reads fall back to primary.
 type DBConfig struct {
-	DBUser     string `json:"db_user"`
-	DBName     string `json:"db_name"`
-	DBHost     string `json:"db_host"`
-	DBPort     string `json:"db_port"`
-	DBReadHost string `json:"db_read_host"`
-	DBReadPort string `json:"db_read_port"`
+	DBUser     string `json:"db_user"`      // Database username (IAM service account)
+	DBName     string `json:"db_name"`      // Database name
+	DBHost     string `json:"db_host"`      // Primary database host (via Cloud SQL Proxy: 127.0.0.1)
+	DBPort     string `json:"db_port"`      // Primary database port (5432)
+	DBReadHost string `json:"db_read_host"` // Read replica host (via Cloud SQL Proxy: 127.0.0.1)
+	DBReadPort string `json:"db_read_port"` // Read replica port (5433)
 }
 
+// Database connection pools:
+// - db: Primary connection for writes (INSERT, UPDATE, DELETE) and failover reads
+// - dbRead: Read replica connection for SELECT queries (improves performance and availability)
 var (
-	db     *sql.DB
-	dbRead *sql.DB
+	db     *sql.DB // Primary database connection
+	dbRead *sql.DB // Read replica connection (or falls back to primary if replica unavailable)
 )
 
+// Circuit Breaker provides fault tolerance by preventing requests to a failing service.
+// This protects the application from cascading failures when the database is consistently unavailable.
+//
+// States:
+// - Closed (normal): All requests pass through
+// - Open (failing): Requests fail immediately with ErrOpenState (returns HTTP 503)
+// - Half-Open (testing): After timeout, allows limited requests to test recovery
 var cb *gobreaker.CircuitBreaker
 
 func init() {
+	// Configure the circuit breaker for database operations
 	var st gobreaker.Settings
 	st.Name = "DatabaseCB"
-	st.MaxRequests = 1            // Requests allowed in half-open state
+	st.MaxRequests = 1            // Requests allowed in half-open state to test recovery
 	st.Interval = 0               // Cyclic period of closed state (0 = never clear counts)
-	st.Timeout = 30 * time.Second // Duration of open state
+	st.Timeout = 30 * time.Second // Duration circuit stays open before attempting recovery
+
+	// ReadyToTrip determines when to open the circuit (stop accepting requests)
+	// Opens when: at least 3 requests AND 60% failure rate
 	st.ReadyToTrip = func(counts gobreaker.Counts) bool {
 		failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
 		return counts.Requests >= 3 && failureRatio >= 0.6
 	}
+
+	// Log circuit breaker state changes for observability
 	st.OnStateChange = func(name string, from gobreaker.State, to gobreaker.State) {
 		slog.Warn("Circuit Breaker state changed", "name", name, "from", from, "to", to)
 	}
@@ -85,7 +105,15 @@ func init() {
 	cb = gobreaker.NewCircuitBreaker(st)
 }
 
-// Helper for retrying operations with Circuit Breaker
+// executeWithResilience wraps database operations with both retry logic and circuit breaking.
+// This provides multi-layer resilience:
+// 1. Circuit Breaker: Fails fast if database is consistently down (prevents cascading failures)
+// 2. Exponential Backoff: Retries transient errors with increasing delays
+//
+// Returns:
+// - nil on success
+// - gobreaker.ErrOpenState if circuit is open (HTTP handlers should return 503)
+// - underlying error if retries exhausted
 func executeWithResilience(op func() error) error {
 	_, err := cb.Execute(func() (interface{}, error) {
 		return nil, retryOperation(op)
@@ -93,13 +121,23 @@ func executeWithResilience(op func() error) error {
 	return err
 }
 
-// Helper for retrying operations (internal)
+// retryOperation implements exponential backoff retry logic for database operations.
+// This handles transient failures like:
+// - Network blips
+// - Connection pool exhaustion
+// - Temporary database load spikes
+//
+// Configuration:
+// - Starts at 100ms delay
+// - Doubles delay up to 2s max
+// - Gives up after 5s total (fail fast for user experience)
 func retryOperation(op func() error) error {
 	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = 100 * time.Millisecond
-	b.MaxInterval = 2 * time.Second
-	b.MaxElapsedTime = 5 * time.Second // Fail fast for user requests
+	b.InitialInterval = 100 * time.Millisecond // First retry after 100ms
+	b.MaxInterval = 2 * time.Second            // Cap retry delay at 2s
+	b.MaxElapsedTime = 5 * time.Second         // Fail fast for user requests
 
+	// RetryNotify executes the operation with retries and logs each attempt
 	return backoff.RetryNotify(op, b, func(err error, d time.Duration) {
 		slog.Warn("Database operation failed, retrying...", "error", err, "duration", d)
 	})
@@ -213,6 +251,16 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+// initDB establishes connections to both primary and read replica databases.
+// This dual-connection architecture provides:
+// - Write scaling: All writes go to primary
+// - Read scaling: Reads distributed to replica, reducing primary load
+// - Availability: Reads fall back to primary if replica fails
+//
+// Connection uses Cloud SQL Proxy which handles:
+// - IAM authentication (no passwords needed)
+// - TLS encryption
+// - Connection pooling
 func initDB(config DBConfig) {
 	var err error
 
@@ -221,10 +269,12 @@ func initDB(config DBConfig) {
 	dbHost := config.DBHost
 	dbPort := config.DBPort
 
-	// Primary Connection
+	// ===== PRIMARY DATABASE CONNECTION =====
+	// The primary database handles all writes and serves as fallback for reads
 	connStr := fmt.Sprintf("postgres://%s:dummy-password@%s:%s/%s?sslmode=disable", dbUser, dbHost, dbPort, dbName)
 	slog.Info("Connecting to PRIMARY database", "url", connStr)
 
+	// Use longer retry timeout for initial connection (allows Cloud SQL Proxy to start)
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = 2 * time.Minute
 
@@ -246,7 +296,9 @@ func initDB(config DBConfig) {
 	}
 	slog.Info("Successfully connected to PRIMARY database")
 
-	// Read Replica Connection
+	// ===== READ REPLICA CONNECTION (OPTIONAL) =====
+	// Read replica improves performance by offloading SELECT queries from primary.
+	// If connection fails, we gracefully fall back to primary for all operations.
 	if config.DBReadHost != "" {
 		dbReadHost := config.DBReadHost
 		dbReadPort := config.DBReadPort
@@ -266,17 +318,20 @@ func initDB(config DBConfig) {
 		}
 
 		// We can be more lenient with Read Replica connection failure
+		// since we can fall back to primary
 		err = backoff.RetryNotify(opRead, b, func(err error, d time.Duration) {
 			slog.Warn("Could not connect to READ REPLICA, retrying...", "error", err, "duration", d)
 		})
 
 		if err != nil {
+			// Read replica unavailable - not fatal, fall back to primary
 			slog.Error("Could not connect to READ REPLICA, falling back to PRIMARY", "error", err)
-			dbRead = db // Fallback to primary
+			dbRead = db // Fallback to primary for reads
 		} else {
 			slog.Info("Successfully connected to READ REPLICA")
 		}
 	} else {
+		// No read replica configured in secrets
 		slog.Info("No Read Replica configured, using PRIMARY for reads")
 		dbRead = db
 	}
@@ -336,18 +391,27 @@ func handleTodo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getTodos retrieves all todo items from the database.
+// Uses dbRead (read replica) to offload SELECT queries from the primary database.
+// This improves performance and allows the primary to focus on writes.
+//
+// Resilience features:
+// - Automatic retries on transient errors (network blips, etc.)
+// - Circuit breaker prevents cascading failures
+// - Falls back to primary if read replica is unavailable
 func getTodos(w http.ResponseWriter, r *http.Request) {
 	var todos []Todo
 
 	err := executeWithResilience(func() error {
-		// Use dbRead for SELECT
+		// Use dbRead (read replica) for all SELECT queries
+		// This distributes read load and improves overall performance
 		rows, err := dbRead.Query("SELECT id, task, completed FROM todos ORDER BY id")
 		if err != nil {
 			return err
 		}
 		defer rows.Close()
 
-		todos = []Todo{} // Reset slice on retry
+		todos = []Todo{} // Reset slice on retry to avoid duplicates
 		for rows.Next() {
 			var t Todo
 			if err := rows.Scan(&t.ID, &t.Task, &t.Completed); err != nil {
@@ -360,6 +424,7 @@ func getTodos(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err == gobreaker.ErrOpenState {
+			// Circuit breaker is open - database is consistently failing
 			http.Error(w, "Service Unavailable (Circuit Breaker Open)", http.StatusServiceUnavailable)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

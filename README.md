@@ -12,6 +12,23 @@ A simple To-Do list application built with Go and PostgreSQL. This application a
 *   **Update To-Do Items**: Mark tasks as completed.
 *   **Delete To-Do Items**: Remove tasks from your list.
 *   **Persistent Storage**: To-Do items are stored in a PostgreSQL database.
+*   **High Availability**: Regional GKE cluster with read replicas
+*   **Resilience**: Automatic retries and circuit breakers for fault tolerance
+*   **Observability**: Prometheus metrics and Cloud Monitoring alerts
+
+## Architecture
+
+### Resilience Features (99.9% Availability)
+- **Exponential Backoff Retries**: All database operations retry automatically on transient failures
+- **Circuit Breaker**: Prevents cascading failures when database is consistently unavailable
+- **Read Replica**: Read traffic distributed to replica for better performance and availability
+- **Point-in-Time Recovery**: Database backups with PITR enabled
+
+### Infrastructure
+- **Compute**: Regional GKE cluster in `us-central1` (multi-zone)
+- **Database**: Cloud SQL PostgreSQL with HA configuration and read replica
+- **Deployment**: Cloud Deploy with canary releases
+- **Monitoring**: Google Cloud Monitoring + Managed Prometheus
 
 ## Prerequisites
 
@@ -75,11 +92,13 @@ The application exposes the following API endpoints:
 ## Technologies Used
 
 *   **Backend**: Go
-*   **Database**: PostgreSQL
+*   **Database**: PostgreSQL (Cloud SQL with HA + Read Replica)
 *   **Containerization**: Docker, Docker Compose
 *   **Frontend**: HTML, CSS, JavaScript (served statically)
-*   **Cloud**: Google Cloud Platform (GKE, Cloud SQL, Artifact Registry)
+*   **Cloud**: Google Cloud Platform (GKE, Cloud SQL, Artifact Registry, Cloud Deploy)
 *   **Authentication**: Workload Identity, Cloud SQL IAM Authentication
+*   **Resilience**: cenkalti/backoff, sony/gobreaker
+*   **Observability**: Prometheus, Cloud Monitoring
 
 ## Documentation
 

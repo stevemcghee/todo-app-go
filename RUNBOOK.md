@@ -29,6 +29,50 @@ If Cloud Deploy is unavailable, manually apply the previous Kubernetes manifests
    kubectl apply -f k8s/
    ```
 
+## Application Resilience Features
+
+### Automatic Retries
+The application implements exponential backoff retries for all database operations.
+
+**Configuration**:
+- Initial interval: 100ms
+- Max interval: 2s
+- Max elapsed time: 5s
+
+**Behavior**: Transient database errors (network blips, connection pool exhaustion) are automatically retried. Check logs for retry warnings:
+```bash
+kubectl logs -l app=todo-app-go | grep "retrying"
+```
+
+### Circuit Breaker
+A circuit breaker protects against cascading failures when the database is consistently unavailable.
+
+**States**:
+- **Closed**: Normal operation, all requests pass through
+- **Open**: After 60% failure rate (min 3 requests), requests fail immediately with `503 Service Unavailable`
+- **Half-Open**: After 30s, allows 1 request to test if service recovered
+
+**Monitoring**:
+Check circuit breaker state changes:
+```bash
+kubectl logs -l app=todo-app-go | grep "Circuit Breaker state changed"
+```
+
+**Recovery**: Circuit breaker auto-recovers when database becomes healthy. No manual intervention needed.
+
+### Read Replica
+Read queries (`GET /todos`) are automatically routed to a read replica for improved performance and availability.
+
+**Failover**: If read replica is unavailable, application falls back to primary database automatically.
+
+**Verify Connection**:
+```bash
+# Check both connections are active
+kubectl logs -l app=todo-app-go | grep "Successfully connected"
+# Should see: "Successfully connected to PRIMARY database"
+# AND: "Successfully connected to READ REPLICA"
+```
+
 ## Troubleshooting
 
 ### Database Connectivity Issues
