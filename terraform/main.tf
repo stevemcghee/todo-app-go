@@ -229,6 +229,10 @@ resource "google_sql_database_instance" "read_replica" {
     ip_configuration {
       ipv4_enabled = true
     }
+    database_flags {
+      name  = "cloudsql.iam_authentication"
+      value = "on"
+    }
   }
   replica_configuration {
     failover_target = false
