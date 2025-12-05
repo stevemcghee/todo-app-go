@@ -78,6 +78,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, security_scan]
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Google Auth
         uses: google-github-actions/auth@v2
         with:
@@ -94,6 +97,4 @@ jobs:
           delivery_pipeline: 'todo-app-pipeline'
           name: 'release-${{ steps.short_sha.outputs.sha }}-${{ github.run_id }}'
           region: 'us-central1'
-          skaffold_file: './skaffold.yaml'
           images: 'todo-app-go=us-central1-docker.pkg.dev/smcghee-todo-p15n-38a6/todo-app-go/todo-app-go:${{ github.sha }}'
-
