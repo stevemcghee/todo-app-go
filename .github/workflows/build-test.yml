@@ -13,7 +13,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -21,7 +20,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22.x' # Use the version of Go specified in go.mod or Dockerfile
+        go-version: '1.22.x'
 
     - name: Build Go application
       run: |
@@ -37,7 +36,7 @@ jobs:
       uses: google-github-actions/auth@v2
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
-        project_id: ${{ vars.GCP_PROJECT_ID }} # Use vars for project ID
+        project_id: ${{ vars.GCP_PROJECT_ID }}
 
     - name: Configure Docker to push to Artifact Registry
       run: gcloud auth configure-docker ${{ vars.GCR_HOSTNAME }}
@@ -52,21 +51,9 @@ jobs:
         docker build -t $GCR_HOSTNAME/$GCP_PROJECT/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG .
         docker push $GCR_HOSTNAME/$GCP_PROJECT/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG
 
-    - name: Get short SHA
-      id: short_sha
-      run: echo "sha=$(echo ${{ github.sha }} | cut -c1-8 | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-    - name: Create Cloud Deploy Release
-      uses: 'google-github-actions/create-cloud-deploy-release@v1'
-      with:
-        delivery_pipeline: 'todo-app-pipeline'
-        name: 'release-${{ steps.short_sha.outputs.sha }}-${{ github.run_id }}'
-        region: 'us-central1'
-        images: 'todo-app-go=us-central1-docker.pkg.dev/smcghee-todo-p15n-38a6/todo-app-go/todo-app-go:${{ github.sha }}'
-  
   security_scan:
     runs-on: ubuntu-latest
-    needs: build # Run after build to ensure code compiles, though can run in parallel if desired.
+    needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -86,3 +73,25 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build, security_scan]
+    steps:
+      - name: Google Auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Get short SHA
+        id: short_sha
+        run: echo "sha=$(echo ${{ github.sha }} | cut -c1-8 | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Create Cloud Deploy Release
+        uses: 'google-github-actions/create-cloud-deploy-release@v1'
+        with:
+          delivery_pipeline: 'todo-app-pipeline'
+          name: 'release-${{ steps.short_sha.outputs.sha }}-${{ github.run_id }}'
+          region: 'us-central1'
+          images: 'todo-app-go=us-central1-docker.pkg.dev/smcghee-todo-p15n-38a6/todo-app-go/todo-app-go:${{ github.sha }}'

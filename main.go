@@ -292,7 +292,15 @@ func main() {
 		"todo-app-go",
 	)
 
-	if err := http.ListenAndServe(":"+port, handler); err != nil {
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      handler,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
 		slog.Error("Server stopped unexpectedly", "error", err)
 		os.Exit(1)
 	}
@@ -439,7 +447,9 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	if _, err := w.Write([]byte("OK")); err != nil {
+		slog.Error("Failed to write health check response", "error", err)
+	}
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
@@ -517,7 +527,9 @@ func getTodos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(todos)
+	if err := json.NewEncoder(w).Encode(todos); err != nil {
+		slog.Error("Failed to encode todos", "error", err)
+	}
 }
 
 func addTodo(w http.ResponseWriter, r *http.Request) {
@@ -549,7 +561,9 @@ func addTodo(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Successfully added todo", "id", t.ID, "task", t.Task)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(t)
+	if err := json.NewEncoder(w).Encode(t); err != nil {
+		slog.Error("Failed to encode todo", "error", err)
+	}
 	todosAdded.Inc()
 }
 
