@@ -35,19 +35,24 @@ workload_identity_config {
 
 ### 1.3 Create Secrets
 
-Define the database password secret in `secrets.tf`:
+Define the application secret in `secrets.tf`. This secret stores the database configuration as a JSON object.
 
 ```hcl
-resource "google_secret_manager_secret" "db_password" {
-  secret_id = "db-password"
+resource "google_secret_manager_secret" "app_secret" {
+  secret_id = "todo-app-secret"
   replication {
     auto {}
   }
 }
 
-resource "google_secret_manager_secret_version" "db_password_version" {
-  secret      = google_secret_manager_secret.db_password.id
-  secret_data = var.db_password
+resource "google_secret_manager_secret_version" "app_secret_version" {
+  secret      = google_secret_manager_secret.app_secret.id
+  secret_data = jsonencode({
+    db_user = replace(google_service_account.todo_app_sa.email, ".gserviceaccount.com", "")
+    db_name = var.db_database_name
+    db_host = "127.0.0.1"
+    db_port = "5432"
+  })
 }
 ```
 
@@ -99,29 +104,32 @@ spec:
   - name: todo-app-go
     # ...
     env:
-    # Removed DB_PASSWORD
     - name: GOOGLE_CLOUD_PROJECT
       value: "${PROJECT_ID}"
+    - name: APP_SECRET_NAME
+      value: "todo-app-secret"
 ```
 
 ## Step 3: Update Application Code
 
-Update `main.go` to fetch the password from Secret Manager using the Google Cloud client library.
+Update `main.go` to fetch the secret from Secret Manager and parse the JSON configuration.
 
 ```go
-import (
-    secretmanager "cloud.google.com/go/secretmanager/apiv1"
-    "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
-)
-
-// ... inside initDB ...
-client, err := secretmanager.NewClient(ctx)
-// ...
-req := &secretmanagerpb.AccessSecretVersionRequest{
-    Name: fmt.Sprintf("projects/%s/secrets/db-password/versions/latest", projectID),
+type DBConfig struct {
+    DBUser string `json:"db_user"`
+    DBName string `json:"db_name"`
+    DBHost string `json:"db_host"`
+    DBPort string `json:"db_port"`
 }
-result, err := client.AccessSecretVersion(ctx, req)
-password := string(result.Payload.Data)
+
+// ... inside main ...
+secretName := fmt.Sprintf("projects/%s/secrets/todo-app-secret/versions/latest", projectID)
+secretValue, err := accessSecretVersion(secretName)
+
+var dbConfig DBConfig
+json.Unmarshal([]byte(secretValue), &dbConfig)
+
+initDB(dbConfig)
 ```
 
 ## Step 4: Deploy

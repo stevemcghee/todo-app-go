@@ -85,6 +85,7 @@ The application exposes the following API endpoints:
 
 - **[Cloud SQL IAM Authentication](docs/CLOUD_SQL_IAM_AUTH.md)** - Complete guide to IAM authentication setup
 - **[Workload Identity Setup](docs/WORKLOAD_IDENTITY.md)** - How to configure Workload Identity for GKE
+- **[HTTPS Setup](docs/HTTPS_SETUP.md)** - Configure HTTPS with GKE Ingress and Google-managed SSL certificates
 
 ## Pushing to Google Artifact Registry
 
