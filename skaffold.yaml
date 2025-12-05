@@ -25,3 +25,7 @@ profiles:
   manifests:
     rawYaml:
     - k8s/verify-job.yaml
+- name: backup
+  manifests:
+    rawYaml:
+    - k8s/backup-plan.yaml
