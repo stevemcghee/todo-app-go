@@ -1,0 +1,14 @@
+apiVersion: backup.gke.io/v1
+kind: BackupPlan
+metadata:
+  name: todo-app-backup-plan
+  namespace: todo-app
+spec:
+  cluster: projects/smcghee-todo-p15n-38a6/locations/us-central1/clusters/todo-app-cluster
+  retentionPolicy:
+    backupRetainDays: 7
+    backupDeleteLockDays: 1
+  backupConfig:
+    includeVolumeData: true
+    includeSecrets: true
+    allNamespaces: true

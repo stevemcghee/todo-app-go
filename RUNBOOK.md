@@ -26,7 +26,53 @@ If Cloud Deploy is unavailable, manually apply the previous Kubernetes manifests
    ```
 2. **Apply manifests**:
    ```bash
-   kubectl apply -f k8s/
+      kubectl apply -f k8s/ -n todo-app   ```
+
+## Cloud Trace
+
+The application uses OpenTelemetry to export distributed traces to Cloud Trace.
+
+### Viewing Traces
+
+1. **Access Cloud Trace**:
+   - Go to Cloud Console → Trace → Trace List
+   - Filter by service name: `todo-app-go`
+
+2. **Analyze Request Flow**:
+   - Click on any trace to see the full request timeline
+   - View database query performance
+   - Identify slow operations or errors
+
+3. **Common Trace Queries**:
+   ```bash
+   # View traces with errors
+   Filter: HasError=true
+   
+   # View slow requests (>500ms)
+   Filter: LatencyMs>500
+   ```
+
+### Troubleshooting Trace Issues
+
+If traces aren't appearing:
+
+1. **Check permissions**:
+   ```bash
+   gcloud projects get-iam-policy $(gcloud config get-value project) \
+     --flatten="bindings[].members" \
+     --filter="bindings.members:serviceAccount:todo-app-sa@*" \
+     --format="table(bindings.role)"
+   ```
+   Should include `roles/cloudtrace.agent`
+
+2. **Check API is enabled**:
+   ```bash
+   gcloud services list --enabled --filter="name:cloudtrace.googleapis.com"
+   ```
+
+3. **Check application logs for export errors**:
+   ```bash
+   kubectl logs -l app=todo-app-go -n todo-app | grep "Cloud Trace"
    ```
 
 ## Application Resilience Features
@@ -41,7 +87,7 @@ The application implements exponential backoff retries for all database operatio
 
 **Behavior**: Transient database errors (network blips, connection pool exhaustion) are automatically retried. Check logs for retry warnings:
 ```bash
-kubectl logs -l app=todo-app-go | grep "retrying"
+kubectl logs -l app=todo-app-go -n todo-app | grep "retrying"
 ```
 
 ### Circuit Breaker
@@ -55,7 +101,7 @@ A circuit breaker protects against cascading failures when the database is consi
 **Monitoring**:
 Check circuit breaker state changes:
 ```bash
-kubectl logs -l app=todo-app-go | grep "Circuit Breaker state changed"
+kubectl logs -l app=todo-app-go -n todo-app | grep "Circuit Breaker state changed"
 ```
 
 **Recovery**: Circuit breaker auto-recovers when database becomes healthy. No manual intervention needed.
@@ -68,7 +114,7 @@ Read queries (`GET /todos`) are automatically routed to a read replica for impro
 **Verify Connection**:
 ```bash
 # Check both connections are active
-kubectl logs -l app=todo-app-go | grep "Successfully connected"
+kubectl logs -l app=todo-app-go -n todo-app | grep "Successfully connected"
 # Should see: "Successfully connected to PRIMARY database"
 # AND: "Successfully connected to READ REPLICA"
 ```
@@ -106,10 +152,10 @@ When an SLO burn rate alert fires:
 1. **Assess Impact**:
    ```bash
    # Check current error rate
-   kubectl logs -l app=todo-app-go | grep "error"
+   kubectl logs -l app=todo-app-go -n todo-app | grep "error"
    
    # Check circuit breaker state
-   kubectl logs -l app=todo-app-go | grep "Circuit Breaker"
+   kubectl logs -l app=todo-app-go -n todo-app | grep "Circuit Breaker"
    ```
 
 2. **Identify Root Cause**:
@@ -119,7 +165,7 @@ When an SLO burn rate alert fires:
 
 3. **Take Action**:
    - Rollback recent deployment if correlation found
-   - Scale up pods if load-related: `kubectl scale deployment todo-app-go --replicas=5`
+   - Scale up pods if load-related: `kubectl scale deployment todo-app-go --replicas=5 -n todo-app`
    - Engage on-call engineer if fast burn alert
 
 4. **Document**:
@@ -144,20 +190,20 @@ A synthetic load generator runs continuously to:
 **Monitoring**:
 ```bash
 # Check load generator status
-kubectl get cronjob todo-app-load-generator
+kubectl get cronjob todo-app-load-generator -n todo-app
 
 # View recent job runs
-kubectl get jobs | grep load-generator
+kubectl get jobs -n todo-app | grep load-generator
 
 # Check logs from last run
-kubectl logs -l app=load-generator --tail=20
+kubectl logs -l app=load-generator -n todo-app --tail=20
 ```
 
 **Adjusting Load**:
 To change request frequency, edit `k8s/load-generator.yaml`:
 ```bash
 # Edit the schedule (currently: */1 * * * * = every minute)
-kubectl edit cronjob todo-app-load-generator
+kubectl edit cronjob todo-app-load-generator -n todo-app
 
 # Or modify the number of requests in the curl loop
 ```
@@ -165,10 +211,10 @@ kubectl edit cronjob todo-app-load-generator
 **Disabling**:
 ```bash
 # Suspend load generation
-kubectl patch cronjob todo-app-load-generator -p '{"spec":{"suspend":true}}'
+kubectl patch cronjob todo-app-load-generator -p '{"spec":{"suspend":true}}' -n todo-app
 
 # Resume
-kubectl patch cronjob todo-app-load-generator -p '{"spec":{"suspend":false}}'
+kubectl patch cronjob todo-app-load-generator -p '{"spec":{"suspend":false}}' -n todo-app
 ```
 
 ## Troubleshooting
@@ -178,32 +224,99 @@ kubectl patch cronjob todo-app-load-generator -p '{"spec":{"suspend":false}}'
 
 1. **Check Cloud SQL Proxy**:
    ```bash
-   kubectl logs -l app=todo-app-go -c cloudsql-proxy
+   kubectl logs -l app=todo-app-go -c cloudsql-proxy -n todo-app
    ```
 2. **Verify Workload Identity**:
    Ensure the Kubernetes ServiceAccount is annotated correctly:
    ```bash
-   kubectl describe sa todo-app-sa
+   kubectl describe sa todo-app-sa -n todo-app
    ```
 3. **Check IAM Permissions**:
    Ensure the Google Service Account has `roles/cloudsql.instanceUser`.
 
+### HTTP 403 Forbidden Errors
+
+**Symptoms**: POST/PUT/DELETE requests fail with 403, browser console shows "Forbidden".
+
+**Common Causes**:
+
+1. **Cloud Armor Security Policy Blocking Requests**:
+   ```bash
+   # Check if security policy is attached
+   gcloud compute backend-services list --filter="name~todo-app" \
+     --format="table(name,securityPolicy)"
+   ```
+   
+   If a security policy is attached and causing false positives:
+   ```bash
+   # Temporarily remove it
+   BACKEND_SERVICE=$(gcloud compute backend-services list --filter="name~todo-app" --format="value(name)")
+   gcloud compute backend-services update $BACKEND_SERVICE --global --security-policy=""
+   ```
+
+2. **Check Cloud Armor Logs**:
+   ```bash
+   gcloud logging read "resource.type=http_load_balancer AND jsonPayload.enforcedSecurityPolicy.name!=null" \
+     --limit=20 --format=json
+   ```
+
+3. **Content Security Policy (CSP) Issues**:
+   - Check browser console for CSP violations
+   - CSP is configured in `main.go` in `securityHeadersMiddleware`
+   - Current policy allows fonts, styles, and scripts from trusted sources
+
 ### High Load / Scaling Issues
 **Symptoms**: High latency, HPA maxed out.
 
+Resource requests and limits are set on the application container to ensure predictable performance and avoid resource contention.
+
 1. **Check HPA Status**:
    ```bash
-   kubectl get hpa
+   kubectl get hpa -n todo-app
    ```
 2. **Increase Max Replicas** (if needed):
    Edit `k8s/hpa.yaml` and increase `maxReplicas`.
    ```bash
-   kubectl apply -f k8s/hpa.yaml
+   kubectl apply -f k8s/hpa.yaml -n todo-app
    ```
 3. **Check Database Load**:
    Check Cloud SQL CPU utilization in Cloud Console. If high, consider upgrading the instance tier (requires downtime).
 
+## GKE Backup and Restore
+
+A GKE Backup Plan has been configured to automatically back up all cluster resources and persistent volumes.
+
+### Enabling GKE Backup for GKE
+
+1. **Enable the API**:
+   ```bash
+   gcloud services enable gke-backup.googleapis.com
+   ```
+
+2. **Deploy the Backup Plan**:
+   The backup plan is defined in `k8s/backup-plan.yaml`. To deploy it, use the `backup` profile in skaffold:
+   ```bash
+   skaffold deploy -p backup
+   ```
+
+### Restoring from a Backup
+
+1. **List Backups**:
+   ```bash
+   gcloud beta container backup-restore backups list --location=us-central1
+   ```
+
+2. **Restore**:
+   ```bash
+   gcloud beta container backup-restore restores create my-restore \
+     --backup=my-backup --location=us-central1
+   ```
+
 ## Disaster Recovery
+...
+**Note**: For cluster-level disaster recovery, consider using the GKE Backup plan. See the "GKE Backup and Restore" section for more details.
+...
+
 
 ### Cluster Failure Scenarios
 

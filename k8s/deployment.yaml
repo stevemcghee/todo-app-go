@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: todo-app-go
+  namespace: todo-app
   labels:
     app: todo-app-go
 spec:
@@ -23,8 +24,8 @@ spec:
             cpu: "100m"
             memory: "128Mi"
           limits:
-            cpu: "500m"
-            memory: "512Mi"
+            cpu: "250m"
+            memory: "256Mi"
         ports:
         - containerPort: 8080
         env: []
@@ -43,6 +44,7 @@ spec:
 
       - name: cloudsql-proxy
         image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
+        args:
           - "--structured-logs"
           - "--auto-iam-authn"
           - "smcghee-todo-p15n-38a6:us-central1:todo-app-db-instance?port=5432"

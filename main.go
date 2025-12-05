@@ -24,6 +24,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sony/gobreaker"
+
+	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
 var (
@@ -41,6 +48,26 @@ var (
 			Buckets: prometheus.DefBuckets,
 		},
 		[]string{"path", "method"},
+	)
+
+	// Business metrics for tracking todo operations
+	todosAdded = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "todos_added_total",
+			Help: "Total number of todos added",
+		},
+	)
+	todosUpdated = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "todos_updated_total",
+			Help: "Total number of todos updated",
+		},
+	)
+	todosDeleted = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "todos_deleted_total",
+			Help: "Total number of todos deleted",
+		},
 	)
 )
 
@@ -143,6 +170,41 @@ func retryOperation(op func() error) error {
 	})
 }
 
+// initTracer initializes Cloud Trace exporter and returns a shutdown function
+func initTracer(projectID string) (func(), error) {
+	ctx := context.Background()
+
+	exporter, err := texporter.New(texporter.WithProjectID(projectID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
+	}
+
+	res, err := resource.New(ctx,
+		resource.WithAttributes(
+			semconv.ServiceNameKey.String("todo-app-go"),
+			semconv.ServiceVersionKey.String("1.0.0"),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resource: %w", err)
+	}
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+	)
+	otel.SetTracerProvider(tp)
+
+	return func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := tp.Shutdown(ctx); err != nil {
+			slog.Error("Failed to shutdown tracer provider", "error", err)
+		}
+	}, nil
+}
+
 func main() {
 	fmt.Println("Raw stdout: Application starting...")
 
@@ -168,6 +230,16 @@ func main() {
 	if projectID == "" {
 		projectID = "smcghee-todo-p15n-38a6"
 	}
+
+	// Initialize Cloud Trace
+	shutdown, err := initTracer(projectID)
+	if err != nil {
+		slog.Warn("Failed to initialize Cloud Trace", "error", err)
+	} else {
+		slog.Info("Cloud Trace initialized")
+		defer shutdown()
+	}
+
 	secretName := fmt.Sprintf("projects/%s/secrets/todo-app-secret/versions/latest", projectID)
 
 	secretValue, err := accessSecretVersion(secretName)
@@ -200,6 +272,10 @@ func main() {
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/favicon.ico")
+	})
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -209,7 +285,22 @@ func main() {
 	}
 
 	slog.Info("Server starting", "port", port)
-	if err := http.ListenAndServe(":"+port, securityHeadersMiddleware(mux)); err != nil {
+
+	// Wrap handler with tracing and security middleware
+	handler := otelhttp.NewHandler(
+		securityHeadersMiddleware(mux),
+		"todo-app-go",
+	)
+
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      handler,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
 		slog.Error("Server stopped unexpectedly", "error", err)
 		os.Exit(1)
 	}
@@ -217,7 +308,8 @@ func main() {
 
 func securityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'")
+		// More permissive CSP that allows fonts and necessary resources
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; font-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; script-src 'self'; img-src 'self' data: https:")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
@@ -355,7 +447,9 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	if _, err := w.Write([]byte("OK")); err != nil {
+		slog.Error("Failed to write health check response", "error", err)
+	}
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
@@ -433,21 +527,29 @@ func getTodos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(todos)
+	if err := json.NewEncoder(w).Encode(todos); err != nil {
+		slog.Error("Failed to encode todos", "error", err)
+	}
 }
 
 func addTodo(w http.ResponseWriter, r *http.Request) {
+	slog.Info("addTodo called", "method", r.Method, "path", r.URL.Path)
+
 	var t Todo
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		slog.Error("Failed to decode request body", "error", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	slog.Info("Decoded todo", "task", t.Task)
 
 	err := executeWithResilience(func() error {
 		return db.QueryRow("INSERT INTO todos (task) VALUES ($1) RETURNING id, completed", t.Task).Scan(&t.ID, &t.Completed)
 	})
 
 	if err != nil {
+		slog.Error("Failed to insert todo", "error", err, "task", t.Task)
 		if err == gobreaker.ErrOpenState {
 			http.Error(w, "Service Unavailable (Circuit Breaker Open)", http.StatusServiceUnavailable)
 		} else {
@@ -456,9 +558,13 @@ func addTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("Successfully added todo", "id", t.ID, "task", t.Task)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(t)
+	if err := json.NewEncoder(w).Encode(t); err != nil {
+		slog.Error("Failed to encode todo", "error", err)
+	}
+	todosAdded.Inc()
 }
 
 func updateTodo(w http.ResponseWriter, r *http.Request, id int) {
@@ -483,6 +589,7 @@ func updateTodo(w http.ResponseWriter, r *http.Request, id int) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	todosUpdated.Inc()
 }
 
 func deleteTodo(w http.ResponseWriter, r *http.Request, id int) {
@@ -501,6 +608,7 @@ func deleteTodo(w http.ResponseWriter, r *http.Request, id int) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+	todosDeleted.Inc()
 }
 
 func accessSecretVersion(name string) (string, error) {
