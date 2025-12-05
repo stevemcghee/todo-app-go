@@ -98,6 +98,8 @@ type DBConfig struct {
 var (
 	DB     *sql.DB // Primary database connection
 	DBRead *sql.DB // Read replica connection (or falls back to primary if replica unavailable)
+
+	BackoffStrategy backoff.BackOff // Global variable to allow injecting a custom backoff for testing
 )
 
 // Circuit Breaker provides fault tolerance by preventing requests to a failing service.
@@ -159,10 +161,16 @@ func ExecuteWithRobustness(op func() error) error {
 // - Doubles delay up to 2s max
 // - Gives up after 5s total (fail fast for user experience)
 func RetryOperation(op func() error) error {
-	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = 100 * time.Millisecond // First retry after 100ms
-	b.MaxInterval = 2 * time.Second            // Cap retry delay at 2s
-	b.MaxElapsedTime = 5 * time.Second         // Fail fast for user requests
+	var b backoff.BackOff
+	if BackoffStrategy != nil {
+		b = BackoffStrategy
+	} else {
+		exponentialBackOff := backoff.NewExponentialBackOff()
+		exponentialBackOff.InitialInterval = 100 * time.Millisecond // First retry after 100ms
+		exponentialBackOff.MaxInterval = 2 * time.Second            // Cap retry delay at 2s
+		exponentialBackOff.MaxElapsedTime = 5 * time.Second         // Fail fast for user requests
+		b = exponentialBackOff
+	}
 
 	// RetryNotify executes the operation with retries and logs each attempt
 	return backoff.RetryNotify(op, b, func(err error, d time.Duration) {

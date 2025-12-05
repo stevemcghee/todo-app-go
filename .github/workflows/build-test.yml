@@ -29,6 +29,9 @@ jobs:
     - name: Run Go tests
       run: go test -v ./...
 
+    - name: Run Chaos Tests
+      run: go test -tags chaos -v ./test/chaos/...
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 

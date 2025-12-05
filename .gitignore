@@ -20,3 +20,5 @@ terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 main
 todo-app-go
+
+.gemini/
