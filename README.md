@@ -1,10 +1,46 @@
 # go-to-production: A Cloud-Native Journey
 
-> **Note:** This is a "toy" application. The code itself (a simple To-Do list) is intentionally basic. The real value of this repository is the **infrastructure, security, and observability** wrapper around it. It demonstrates how to take a simple app and make it production-ready on Google Cloud.
+> **Note:** This is a "minimum viable system (more than one component)" application. The code itself (a simple To-Do list) is intentionally basic. The real value of this repository is the **infrastructure, security, and observability** wrapper around it. It demonstrates how to take a simple app and make it production-ready on Google Cloud.
 
 ## Purpose
 
 This repository serves as a reference implementation for modern cloud-native practices on Google Cloud Platform (GCP). It evolves from a simple local Docker setup to a highly available, secure, and observable system running on GKE.
+
+### Evolution Overview
+
+The repository has grown from a simple local Docker setup to a comprehensive cloud-native reference implementation.
+
+- **Baseline Tag**: The starting point (simple Go app + Docker Compose).
+- **Main Branch**: The finished state (GKE, Cloud SQL, Cloud Deploy, Observability).
+
+### Key Insights
+
+1.  **Documentation First**: The largest growth area was **Documentation (+695%)**. This reflects the educational nature of the project, with detailed guides for every milestone.
+2.  **Infrastructure Complexity**: **IaC grew by 25x** (64 to 1,714 lines). This illustrates the reality of cloud-native engineering: the application code is often the tip of the iceberg compared to the infrastructure code required to run it reliably.
+3.  **Application Maturity**: The application code doubled in size (+114%) to support production features like:
+    *   Prometheus instrumentation
+    *   Structured logging
+    *   Cloud Trace integration
+    *   Robustness patterns (retries, circuit breakers)
+    *   Security headers (CSP)
+
+### Visualization
+
+![Codebase Evolution Across Milestones](docs/repo_evolution.png)
+
+The chart above visualizes the step-by-step growth of the repository. You can see the "Infrastructure" (green) and "Documentation" (orange) layers expanding with each milestone, while the "Application Code" (blue) grows more gradually as we add features like metrics and tracing.
+
+### Conclusion
+
+Transforming a "minimum viable system (more than one component)" into a production-ready system requires a significant investment in infrastructure and documentation. In this project, for every line of application code, we wrote approximately **2 lines of Infrastructure as Code** and **3.5 lines of Documentation**.
+
+### Code Size Distribution: Baseline App Code vs. Rest of Production
+
+```mermaid
+pie
+    "Baseline App Code" : 392
+    "Rest of Production Code" : 5583
+```
 
 **Key Concepts Demonstrated:**
 *   **Infrastructure as Code**: Terraform for GKE, Cloud SQL, and IAM.
