@@ -90,10 +90,10 @@ jobs:
 
       - name: Create Cloud Deploy Release
         uses: 'google-github-actions/create-cloud-deploy-release@v1'
-              with:
-                delivery_pipeline: 'todo-app-pipeline'
-                name: 'release-${{ steps.short_sha.outputs.sha }}-${{ github.run_id }}'
-                region: 'us-central1'
-                skaffold_file: './skaffold.yaml'
-                images: 'todo-app-go=us-central1-docker.pkg.dev/smcghee-todo-p15n-38a6/todo-app-go/todo-app-go:${{ github.sha }}'
-        
+        with:
+          delivery_pipeline: 'todo-app-pipeline'
+          name: 'release-${{ steps.short_sha.outputs.sha }}-${{ github.run_id }}'
+          region: 'us-central1'
+          skaffold_file: './skaffold.yaml'
+          images: 'todo-app-go=us-central1-docker.pkg.dev/smcghee-todo-p15n-38a6/todo-app-go/todo-app-go:${{ github.sha }}'
+
