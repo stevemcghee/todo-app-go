@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-app-go
+  labels:
+    app: todo-app-go
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-app-go
+  template:
+    metadata:
+      labels:
+        app: todo-app-go
+    spec:
+      containers:
+      - name: todo-app-go
+        image: "gcr.io/${PROJECT_ID}/todo-app-go:latest"
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          value: "127.0.0.1"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: "$(DB_USER)" # Placeholder - will be fetched from Secret Manager
+        - name: DB_PASSWORD
+          value: "$(DB_PASSWORD)" # Placeholder - will be fetched from Secret Manager
+        - name: DB_NAME
+          value: "$(DB_NAME)" # Placeholder - will be fetched from Secret Manager
+        - name: DATABASE_URL
+          value: "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      - name: cloudsql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.17
+        command:
+          - "/cloud_sql_proxy"
+          - "-instances=${INSTANCE_CONNECTION_NAME}=tcp:5432"
+        securityContext:
+          runAsNonRoot: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"

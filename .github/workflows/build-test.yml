@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 'feature/**'
   pull_request:
     branches:
       - main
@@ -33,10 +34,10 @@ jobs:
       uses: docker/setup-buildx-action@v3
 
     - name: Google Auth
-      id: auth
       uses: google-github-actions/auth@v2
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ vars.GCP_PROJECT_ID }} # Use vars for project ID
 
     - name: Configure Docker to push to Artifact Registry
       run: gcloud auth configure-docker ${{ vars.GCR_HOSTNAME }}
@@ -46,10 +47,10 @@ jobs:
         IMAGE_NAME: todo-app-go
         IMAGE_TAG: ${{ github.sha }}
         GCR_HOSTNAME: ${{ vars.GCR_HOSTNAME }}
-        GCP_PROJECT_ID: ${{ steps.auth.outputs.project_id }}
+        GAR_REPOSITORY: todo-app-go
       run: |
-        docker build -t $GCR_HOSTNAME/$GCP_PROJECT_ID/todo-app-go/$IMAGE_NAME:$IMAGE_TAG .
-        docker push $GCR_HOSTNAME/$GCP_PROJECT_ID/todo-app-go/$IMAGE_NAME:$IMAGE_TAG
+        docker build -t $GCR_HOSTNAME/$GCP_PROJECT/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG .
+        docker push $GCR_HOSTNAME/$GCP_PROJECT/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG
 
     - name: Install kubectl
       uses: azure/setup-kubectl@v3 # Using Azure's action as it's common and reliable
@@ -59,11 +60,33 @@ jobs:
       with:
         cluster_name: ${{ vars.GKE_CLUSTER_NAME }}
         location: ${{ vars.GKE_CLUSTER_LOCATION }} # This will be the zone (e.g., us-central1-a)
-        project_id: ${{ steps.auth.outputs.project_id }}
+        project_id: ${{ vars.GCP_PROJECT_ID }}
 
     - name: Apply Kubernetes manifests
+      env:
+        IMAGE_NAME: todo-app-go
+        IMAGE_TAG: ${{ github.sha }}
+        GCR_HOSTNAME: ${{ vars.GCR_HOSTNAME }}
+        FULL_IMAGE: ${{ vars.GCR_HOSTNAME }}/${{ env.GCP_PROJECT }}/todo-app-go/todo-app-go:${{ github.sha }}
       run: |
         # Replace placeholders in the deployment manifest
-        sed -i "s|gcr.io/${PROJECT_ID}/todo-app-go:latest|$GCR_HOSTNAME/$GCP_PROJECT_ID/todo-app-go/$IMAGE_NAME:$IMAGE_TAG|g" k8s/deployment.yaml
+        echo "Replacing image with: $GCR_HOSTNAME/$GCP_PROJECT/todo-app-go/$IMAGE_NAME:$IMAGE_TAG"
+        sed -i 's|"gcr.io/${PROJECT_ID}/todo-app-go:latest"|"'"$GCR_HOSTNAME/$GCP_PROJECT/todo-app-go/$IMAGE_NAME:$IMAGE_TAG"'"|g' k8s/deployment.yaml
         sed -i "s|\${INSTANCE_CONNECTION_NAME}|${{ vars.GKE_SQL_INSTANCE_CONNECTION_NAME }}|g" k8s/deployment.yaml
+        sed -i "s|\$(DB_USER)|${{ vars.DB_USER }}|g" k8s/deployment.yaml
+        sed -i "s|\$(DB_PASSWORD)|${{ secrets.DB_PASSWORD }}|g" k8s/deployment.yaml
+        sed -i "s|\$(DB_NAME)|${{ vars.DB_NAME }}|g" k8s/deployment.yaml
+        
+        # Replace placeholders in db-init-job.yaml
+        sed -i "s|\${INSTANCE_CONNECTION_NAME}|${{ vars.GKE_SQL_INSTANCE_CONNECTION_NAME }}|g" k8s/db-init-job.yaml
+        sed -i "s|\$(DB_USER)|${{ vars.DB_USER }}|g" k8s/db-init-job.yaml
+        sed -i "s|\$(DB_PASSWORD)|${{ secrets.DB_PASSWORD }}|g" k8s/db-init-job.yaml
+        sed -i "s|\$(DB_NAME)|${{ vars.DB_NAME }}|g" k8s/db-init-job.yaml
+        
+        echo "Deployment after sed:"
+        grep "image:" k8s/deployment.yaml
+        
+        # Delete existing job if any to avoid immutable field errors
+        kubectl delete job db-init --ignore-not-found
+        
         kubectl apply -f k8s/

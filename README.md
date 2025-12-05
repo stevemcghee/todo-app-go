@@ -198,6 +198,10 @@ Replace `[YOUR_INSTANCE_NAME]` and `[YOUR_DB_PASSWORD]` with your actual instanc
 ### 3. Initialize the Database Schema
 
 Unlike the local Docker setup, Cloud SQL does not automatically run the `init.sql` script. You must manually create the table schema.
+201: 
+202: **Note:** The CI/CD pipeline now includes an automated job to initialize the database schema using `k8s/db-init-job.yaml`. If you are deploying via the pipeline, this step is handled for you.
+203: 
+204: If you need to manually initialize it:
 
 1.  **Connect to your instance using the `gcloud` CLI:**
     ```bash
