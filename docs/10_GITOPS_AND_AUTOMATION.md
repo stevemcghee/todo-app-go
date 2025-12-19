@@ -7,7 +7,7 @@ This document outlines the transition from push-based deployments to a pull-base
 To deploy this version of the infrastructure:
 
 ```bash
-git checkout tags/milestone-gitops
+git checkout tags/milestone-10-gitops
 ```
 
 ## 2. What was Implemented?

@@ -7,7 +7,7 @@ This document outlines the deployment of the "Walking Skeleton" - the minimum vi
 To deploy this version of the infrastructure:
 
 ```bash
-git checkout tags/milestone-base-infra
+git checkout tags/milestone-02-base-infra
 ```
 
 ## 2. What was Implemented?

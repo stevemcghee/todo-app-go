@@ -4,10 +4,10 @@ This document outlines how to run the simple, local version of the app (without 
 
 ## 1. Checkout this Milestone
 
-To run the local version of the app, you **must** check out the `baseline` tag. The `main` branch contains cloud-specific code (Secret Manager, etc.) that will not run locally without GCP credentials.
+To run the local version of the app, you **must** check out the `milestone-00-baseline` tag. The `main` branch contains cloud-specific code (Secret Manager, etc.) that will not run locally without GCP credentials.
 
 ```bash
-git checkout tags/baseline
+git checkout tags/milestone-00-baseline
 ```
 
 ## 2. What was Implemented?

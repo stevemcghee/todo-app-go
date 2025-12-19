@@ -3,6 +3,14 @@
 ## Overview
 Implemented progressive canary deployments using Google Cloud Deploy with automated traffic shifting (1% → 10% → 100%).
 
+## 1. Checkout this Milestone
+
+To deploy this version of the infrastructure:
+
+```bash
+git checkout tags/milestone-06-advanced-deployment
+```
+
 ## Changes Made
 
 ### 1. Cloud Deploy Configuration

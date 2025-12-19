@@ -7,7 +7,7 @@ This document outlines the upgrade to a regional, highly available infrastructur
 To deploy this version of the infrastructure:
 
 ```bash
-git checkout tags/milestone-ha-scale
+git checkout tags/milestone-03-ha-scale
 ```
 
 ## 2. What was Implemented?

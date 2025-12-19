@@ -7,7 +7,7 @@ This document outlines the initial planning phase where we identified critical r
 To see the state of the repository at this stage (which includes the initial plans):
 
 ```bash
-git checkout tags/milestone-risk-analysis
+git checkout tags/milestone-01-risk-analysis
 ```
 
 ## 2. What was Implemented?

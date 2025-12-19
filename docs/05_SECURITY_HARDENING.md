@@ -7,7 +7,7 @@ This document outlines the implementation of defense-in-depth security measures,
 To deploy this version of the infrastructure:
 
 ```bash
-git checkout tags/milestone-security-hardening
+git checkout tags/milestone-05-security-hardening
 ```
 
 ## 2. What was Implemented?

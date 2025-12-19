@@ -7,7 +7,7 @@ This document outlines the implementation of application robustness patterns and
 To deploy this version of the infrastructure:
 
 ```bash
-git checkout tags/milestone-resilience-slos
+git checkout tags/milestone-08-robustness-slos
 ```
 
 ## 2. What was Implemented?

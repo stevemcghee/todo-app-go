@@ -7,7 +7,7 @@ This document outlines the final steps to production readiness, including distri
 To deploy this version of the infrastructure:
 
 ```bash
-git checkout tags/milestone-tracing-polish
+git checkout tags/milestone-09-tracing-polish
 ```
 
 ## 2. What was Implemented?

@@ -7,7 +7,7 @@ This document outlines the security hardening of database credentials and identi
 To deploy this version of the infrastructure:
 
 ```bash
-git checkout tags/milestone-iam-auth
+git checkout tags/milestone-04-iam-auth
 ```
 
 ## 2. What was Implemented?

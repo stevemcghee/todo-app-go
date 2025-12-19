@@ -7,7 +7,7 @@ This document outlines the implementation of Prometheus metrics and database rec
 To deploy this version of the infrastructure:
 
 ```bash
-git checkout tags/milestone-observability-metrics
+git checkout tags/milestone-07-observability-metrics
 ```
 
 ## 2. What was Implemented?
