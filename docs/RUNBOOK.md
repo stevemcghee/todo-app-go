@@ -30,7 +30,39 @@ If Cloud Deploy is unavailable, manually apply the previous Kubernetes manifests
    ```
 2. **Apply manifests**:
    ```bash
-      kubectl apply -f k8s/ -n todo-app   ```
+   kubectl apply -f k8s/ -n todo-app
+   ```
+
+## Emergency Fallback: Cloud Deploy
+
+If ArgoCD is unavailable (e.g., control plane failure, Git provider outage) or if you need to bypass GitOps for an immediate emergency release, use Cloud Deploy.
+
+### 1. Suspend ArgoCD (If controller is alive)
+If the ArgoCD controller is still running, you must disable automatic synchronization to prevent it from overwriting your Cloud Deploy changes.
+
+```bash
+# Disable auto-sync and self-heal
+kubectl patch app todo-app -n argocd -p '{"spec": {"syncPolicy": {"automated": null}}}' --type merge
+```
+
+### 2. Trigger Cloud Deploy Release
+Use the pre-configured delivery pipeline to push the desired version directly to the cluster.
+
+```bash
+# Create a release via Cloud Deploy
+gcloud deploy releases create emergency-$(date +%s) \
+  --delivery-pipeline=todo-app-pipeline \
+  --region=us-central1 \
+  --images=todo-app-go=[IMAGE_TAG_OR_DIGEST]
+```
+
+### 3. Resume ArgoCD Orchestration
+Once the emergency is resolved and the fix has been committed to Git, re-enable ArgoCD to restore the GitOps "Source of Truth".
+
+```bash
+# Re-enable automated sync
+kubectl patch app todo-app -n argocd -p '{"spec": {"syncPolicy": {"automated": {"prune": true, "selfHeal": true}}}}' --type merge
+```
 
 ## Cloud Trace
 
