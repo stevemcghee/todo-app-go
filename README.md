@@ -123,6 +123,14 @@ This project currently costs approximately **$17.00 / day** to run in its fully 
 | **Observability** | ~$2.40 | Cloud Logging, Cloud Trace, and GKE Backup ingestion. |
 | **Total** | **~$17.00** | |
 
+```mermaid
+xychart-beta
+    title "Daily Cost Evolution by Milestone"
+    x-axis ["M00", "M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11"]
+    y-axis "Daily Cost ($)" 0 --> 20
+    line [0, 0, 6, 15, 15, 15, 15, 15.5, 16, 16.5, 16.8, 17]
+```
+
 ### Cost Inflection Points
 
 The journey from a free hobby project to a production-ready enterprise app has clear "jumps" in cost:
