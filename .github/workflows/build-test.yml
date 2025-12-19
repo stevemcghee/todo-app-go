@@ -53,6 +53,7 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
         GCR_HOSTNAME: ${{ vars.GCR_HOSTNAME }}
         GAR_REPOSITORY: todo-app-go
+        GCP_PROJECT: ${{ vars.GCP_PROJECT_ID }}
       run: |
         docker build -t $GCR_HOSTNAME/$GCP_PROJECT/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG .
         docker push $GCR_HOSTNAME/$GCP_PROJECT/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG
