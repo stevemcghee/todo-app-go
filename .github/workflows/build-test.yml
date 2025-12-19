@@ -39,10 +39,17 @@ jobs:
       uses: docker/setup-buildx-action@v3
 
     - name: Google Auth
+      id: auth
       uses: google-github-actions/auth@v2
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
-        project_id: ${{ vars.GCP_PROJECT_ID }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Get Project ID
+      id: project
+      run: echo "id=$(gcloud config get-value project)" >> $GITHUB_OUTPUT
 
     - name: Configure Docker to push to Artifact Registry
       run: gcloud auth configure-docker ${{ vars.GCR_HOSTNAME }}
@@ -53,7 +60,7 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
         GCR_HOSTNAME: ${{ vars.GCR_HOSTNAME }}
         GAR_REPOSITORY: todo-app-go
-        GCP_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+        GCP_PROJECT: ${{ steps.project.outputs.id }}
       run: |
         docker build -t $GCR_HOSTNAME/$GCP_PROJECT/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG .
         docker push $GCR_HOSTNAME/$GCP_PROJECT/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG
@@ -67,7 +74,7 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
         GCR_HOSTNAME: ${{ vars.GCR_HOSTNAME }}
         GAR_REPOSITORY: todo-app-go
-        GCP_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+        GCP_PROJECT: ${{ steps.project.outputs.id }}
       run: |
         IMAGE_PATH="$GCR_HOSTNAME/$GCP_PROJECT/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG"
         echo "Signing image: $IMAGE_PATH"
@@ -107,7 +114,13 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get Project ID
+        id: project
+        run: echo "id=$(gcloud config get-value project)" >> $GITHUB_OUTPUT
 
       - name: Get short SHA
         id: short_sha
@@ -119,4 +132,4 @@ jobs:
           delivery_pipeline: 'todo-app-pipeline'
           name: 'release-${{ steps.short_sha.outputs.sha }}-${{ github.run_id }}'
           region: 'us-central1'
-          images: 'todo-app-go=us-central1-docker.pkg.dev/smcghee-todo-p15n-38a6/todo-app-go/todo-app-go:${{ github.sha }}'
+          images: 'todo-app-go=${{ vars.GCR_HOSTNAME }}/${{ steps.project.outputs.id }}/todo-app-go/todo-app-go:${{ github.sha }}'
