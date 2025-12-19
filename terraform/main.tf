@@ -109,6 +109,24 @@ resource "google_project_service" "monitoring_api" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "containeranalysis_api" {
+  project = var.project_id
+  service = "containeranalysis.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "containerscanning_api" {
+  project = var.project_id
+  service = "containerscanning.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "binaryauthorization_api" {
+  project = var.project_id
+  service = "binaryauthorization.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "cloudtrace_api" {
   project = var.project_id
   service = "cloudtrace.googleapis.com"

@@ -61,8 +61,16 @@ jobs:
       uses: sigstore/cosign-installer@v3.5.0
 
     - name: Sign image with a keyless signature
+      env:
+        IMAGE_NAME: todo-app-go
+        IMAGE_TAG: ${{ github.sha }}
+        GCR_HOSTNAME: ${{ vars.GCR_HOSTNAME }}
+        GAR_REPOSITORY: todo-app-go
+        GCP_PROJECT: ${{ vars.GCP_PROJECT_ID }}
       run: |
-        cosign sign --yes ${{ vars.GCR_HOSTNAME }}/${{ vars.GCP_PROJECT_ID }}/todo-app-go/todo-app-go:${{ github.sha }}
+        IMAGE_PATH="$GCR_HOSTNAME/$GCP_PROJECT/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG"
+        echo "Signing image: $IMAGE_PATH"
+        cosign sign --yes "$IMAGE_PATH"
 
   security_scan:
     runs-on: ubuntu-latest
