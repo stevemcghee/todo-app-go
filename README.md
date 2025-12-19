@@ -123,23 +123,12 @@ This project currently costs approximately **$17.00 / day** to run in its fully 
 | **Cloud SQL** | ~$6.20 | Regional HA Instance + Read Replica. |
 | **Total** | **~$17.00** | |
 
-```mermaid
-xychart-beta
-    title "Cost Evolution: Total (Bar) vs. Categories (Lines)"
-    x-axis ["M00", "M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11"]
-    y-axis "Daily Cost ($)" 0 --> 20
-    bar [0, 0, 6.0, 15.0, 15.0, 15.0, 15.0, 15.5, 16.0, 16.5, 16.8, 17.0]
-    line [0, 0, 1.0, 6.2, 6.2, 6.2, 6.2, 6.2, 6.2, 6.2, 6.2, 6.2]
-    line [0, 0, 4.0, 7.2, 7.2, 7.2, 7.2, 7.2, 7.2, 7.2, 7.2, 7.2]
-    line [0, 0, 1.0, 1.6, 1.6, 1.6, 1.6, 2.1, 2.6, 3.1, 3.4, 3.6]
-```
+![Daily Cost Evolution](docs/images/daily_cost_chart.png)
 
-> **Visual Legend:**
-> *   📊 **Bars**: Total Daily Cost
-> *   📈 **Purple Line**: Cloud SQL (HA + Replica)
-> *   📈 **Blue Line**: GKE (Management Fee + Nodes)
-> *   📈 **Orange Line**: Others (Networking, Logging, Backups)
-> *   Note: Mermaid `xychart-beta` does not support native color legends yet; colors are assigned automatically by the renderer.
+> **Chart Legend:**
+> *   🟣 **Cloud SQL**: Regional HA Instance + Read Replica
+> *   🔵 **GKE & Compute**: Regional Cluster Fee + 6 Nodes
+> *   🟠 **Observability & Net**: Logging, Tracing, Backups, Load Balancer
 
 ### Cost Inflection Points
 
