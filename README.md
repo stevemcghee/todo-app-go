@@ -110,6 +110,28 @@ We focus heavily on Day 2 operations and reliability.
 
 > **Note on Branch Protection:** You may notice that the `main` branch is not protected by Pull Request requirements. In a real production environment, branch protection is mandatory. However, for this **educational reference repo**, we have left it unprotected to allow you to push milestone updates directly and follow the journey without the overhead of manual PR approvals for every step.
 
+## Estimated Daily Costs
+
+This project currently costs approximately **$17.00 / day** to run in its fully production-ready state. Below is the breakdown and how our milestones influenced this cost curve.
+
+| Category | Est. Daily Cost | Details |
+| :--- | :--- | :--- |
+| **Cloud SQL** | ~$10.00 | HA Regional Instance + Read Replica (`db-custom-1-3840`) |
+| **GKE Management** | $2.40 | Fixed cluster management fee for a regional cluster. |
+| **Compute Nodes** | ~$1.60 | 2x `e2-medium` nodes in the primary node pool. |
+| **Networking** | ~$0.60 | Global External Load Balancer (Ingress). |
+| **Observability** | ~$2.40 | Cloud Logging, Cloud Trace, and GKE Backup ingestion. |
+| **Total** | **~$17.00** | |
+
+### Cost Inflection Points
+
+The journey from a free hobby project to a production-ready enterprise app has clear "jumps" in cost:
+
+1.  **$0.00 → $6.00** (Milestone 02): Initial GKE cluster and a single small Cloud SQL instance were provisioned.
+2.  **$6.00 → $15.00** (Milestone 03): Added **High Availability (HA)** to Cloud SQL and a **Read Replica**. This is the single largest cost increase, prioritizing reliability over budget.
+3.  **$15.00 → $16.50** (Milestone 07-09): Enabled Cloud Trace and comprehensive logging. Ingested data volume adds a variable but steady cost.
+4.  **$16.50 → $17.00** (Milestone 10-11): Added management overhead (ArgoCD, Gatekeeper) and the GKE Backup service fee.
+
 ## Technologies Used
 
 *   **Backend**: Go (Gin)
