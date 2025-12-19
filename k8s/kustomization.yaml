@@ -6,6 +6,11 @@ resources:
   - ingress.yaml
   - managed-certificate.yaml
   - backend-config.yaml
+  - create-iam-user-job.yaml
+  - db-init-job.yaml
+  - verify-job.yaml
+  - load-generator.yaml
+  - pod-monitoring.yaml
   - policies/template-required-labels.yaml
   - policies/constraint-ns-owner.yaml
   - rollouts/analysis-smoke-test.yaml
