@@ -9,8 +9,8 @@ This document details the risk analysis, mitigation strategies, and future roadm
 #### Infrastructure & Reliability Risks
 | Risk Category | Specific Risk | Prob (1-3) | Imp (1-4) | Score | Status | Existing Mitigation | Proposed Mitigation |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Self-Imposed** | Bad Deployment | High (3) | High (3) | **9** | ✅ | Canary (Cloud Deploy) | **Automated Rollback on SLO Breach** |
-| **Self-Imposed** | Manual Config Drift | High (3) | Med (2) | **6** | ❌ | *None* | **GitOps (ArgoCD) + Policy as Code** |
+| **Self-Imposed** | Bad Deployment | High (3) | High (3) | **9** | ✅ | Argo Rollouts + Automated Rollback | **N/A (Already Mitigated)** |
+| **Self-Imposed** | Manual Config Drift | High (3) | Med (2) | **6** | ✅ | ArgoCD + OPA Gatekeeper | **N/A (Already Mitigated)** |
 | **Infra Failure** | Single Zone Failure | Med (2) | High (3) | **6** | ✅ | Regional GKE, HA Cloud SQL | **N/A (Already Mitigated)** |
 | **Infra Failure** | Quota Exhaustion | Med (2) | High (3) | **6** | ❌ | *None* | **Quota Monitoring & Alerts** |
 | **Self-Imposed** | Terraform State Conflict | Med (2) | Med (2) | **4** | ✅ | GCS Backend | **State Locking / Atlantis** |
@@ -22,10 +22,10 @@ This document details the risk analysis, mitigation strategies, and future roadm
 | Risk Category | Specific Risk | Prob (1-3) | Imp (1-4) | Score | Status | Existing Mitigation | Proposed Mitigation |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Attack** | DDoS / Web Attacks | Med (2) | High (3) | **6** | ✅ | Cloud Armor | **Strict WAF Rules + Rate Limiting** |
-| **Attack** | Dependency Vulnerabilities | Med (2) | High (3) | **6** | ❌ | *None* | **Dependabot + SCA Scanning** |
-| **Attack** | Secrets Leakage (Git) | Med (2) | High (3) | **6** | ❌ | *None* | **Pre-commit hooks + Secret Scanning** |
+| **Attack** | Dependency Vulnerabilities | Med (2) | High (3) | **6** | ✅ | Dependabot + Artifact Registry Scanning | **N/A (Already Mitigated)** |
+| **Attack** | Secrets Leakage (Git) | Med (2) | High (3) | **6** | ✅ | Pre-commit hooks (gitleaks) | **N/A (Already Mitigated)** |
 | **Attack** | Insider Threat | Low (1) | Catastrophic (4) | **4** | ❌ | *None* | **Just-in-Time Access (JIT) + Audit Logs** |
-| **Attack** | Supply Chain Attack | Low (1) | High (3) | **3** | ❌ | *None* | **Container Scanning + SBOM** |
+| **Attack** | Supply Chain Attack | Low (1) | High (3) | **3** | ✅ | Cosign Signing + Binary Authorization | **N/A (Already Mitigated)** |
 | **Attack** | SQL Injection | Low (1) | High (3) | **3** | ✅ | Parameterized Queries | **N/A (Already Mitigated)** |
 
 #### Data Integrity & Availability Risks
@@ -59,31 +59,59 @@ This document details the risk analysis, mitigation strategies, and future roadm
 *   **Container Scanning**: Enable Artifact Registry Vulnerability Scanning. Block deployments with Critical vulnerabilities.
 *   **WAF Tuning**: Explicitly define Cloud Armor rules in Terraform (if not already) to block common OWASP attacks.
 
-### Proposed New Milestones
+### Completed Milestones
 
-#### 10. GitOps & Automation (`milestone-gitops`)
+#### ✅ 10. GitOps & Automation (`milestone-10-gitops`)
 **Goal**: Eliminate "ClickOps" and ensure the cluster state always matches the git repository.
-*   **Scope**:
-    *   Install ArgoCD.
-    *   Migrate from Cloud Deploy to ArgoCD (Pull-based).
-    *   Implement OPA/Gatekeeper for Policy as Code.
-    *   Configure Automated Rollbacks based on Prometheus Alerts.
+*   **Completed**:
+    *   ✅ Installed ArgoCD
+    *   ✅ Migrated from Cloud Deploy to ArgoCD (Pull-based)
+    *   ✅ Implemented Dependabot for dependency updates
+    *   ✅ Added pre-commit hooks for secret scanning
 
-#### 11. Supply Chain Security (`milestone-supply-chain`)
+#### ✅ 11. Policy & Rollouts (`milestone-11-policy-rollouts`)
+**Goal**: Enforce policies and enable safe, automated deployments.
+*   **Completed**:
+    *   ✅ Implemented OPA/Gatekeeper policies (no latest tags, resource limits)
+    *   ✅ Configured Argo Rollouts with canary deployments
+    *   ✅ Added automated rollbacks on analysis failure
+    *   ✅ Implemented Pod Disruption Budgets
+    *   ✅ Configured GKE Backup Plan
+
+#### ✅ 12. Supply Chain Security (`milestone-12-supply-chain`)
 **Goal**: Secure the build and deployment pipeline.
-*   **Scope**:
-    *   Enable Artifact Registry Vulnerability Scanning.
-    *   Generate SBOMs (Software Bill of Materials) in CI.
-    *   Sign images with Cosign / Sigstore.
-    *   Enforce "Binary Authorization" (only signed images can run).
+*   **Completed**:
+    *   ✅ Enabled Artifact Registry Vulnerability Scanning
+    *   ✅ Signed images with Cosign/Sigstore (keyless)
+    *   ✅ Enforced Binary Authorization (only signed images can run)
+    *   ✅ Removed Cloud Deploy from CI/CD (GitOps-only)
 
-#### 12. Multi-Region (`milestone-multi-region`)
+### Proposed Future Milestones
+
+#### 13. Multi-Region (`milestone-13-multi-region`)
 **Goal**: Achieve 99.99% availability and survive region-wide outages.
 *   **Scope**:
-    *   Replicate GKE cluster to `us-east1`.
-    *   Configure Cloud SQL Cross-Region Read Replicas.
-    *   Set up Global External Load Balancer (GCLB).
-    *   Implement DNS failover or Anycast IP.
+    *   Replicate GKE cluster to `us-east1`
+    *   Configure Cloud SQL Cross-Region Read Replicas
+    *   Set up Global External Load Balancer (GCLB)
+    *   Implement DNS failover or Anycast IP
+    *   *Note*: This will approximately double infrastructure costs
+
+#### 14. Advanced Observability (`milestone-14-advanced-observability`)
+**Goal**: Implement comprehensive observability and chaos engineering.
+*   **Scope**:
+    *   Implement distributed tracing correlation with logs
+    *   Add custom SLIs for business metrics
+    *   Set up chaos engineering experiments (Chaos Mesh)
+    *   Implement automated incident response playbooks
+
+#### 15. Cost Optimization (`milestone-15-cost-optimization`)
+**Goal**: Optimize cloud spending without sacrificing reliability.
+*   **Scope**:
+    *   Implement GKE Autopilot or cluster autoscaling
+    *   Right-size Cloud SQL instances based on actual usage
+    *   Implement committed use discounts
+    *   Add cost anomaly detection and alerts
 
 ### Estimates & "Nines"
 
