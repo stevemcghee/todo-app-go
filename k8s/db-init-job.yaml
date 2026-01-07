@@ -10,6 +10,7 @@ spec:
       labels:
         app: todo-app-go-db-init
     spec:
+      serviceAccountName: todo-app-sa
       shareProcessNamespace: true
       restartPolicy: OnFailure
       containers:
