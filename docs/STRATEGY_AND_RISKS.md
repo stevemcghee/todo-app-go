@@ -114,6 +114,14 @@ This document details the risk analysis, mitigation strategies, and future roadm
     *   Implement committed use discounts
     *   Add cost anomaly detection and alerts
 
+#### 16. Multi-Cloud & Edge (`milestone-16-multi-cloud`)
+**Goal**: Eliminate vendor lock-in and minimize latency globally.
+*   **Scope**:
+    *   Deploy static assets to Cloudflare Workers / Pages or similar.
+    *   Deploy optional backup stack to AWS (EKS + RDS).
+    *   Use Multi-Cloud Service Mesh or DNS-based weighting.
+
+
 ### Estimates & "Nines"
 
 *   **Current State**: ~99.9% (Regional HA). Downtime allowed: ~43m / month.
