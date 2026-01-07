@@ -16,6 +16,22 @@ resource "google_binary_authorization_policy" "policy" {
     name_pattern = "gke.gcr.io/*"
   }
 
+  admission_whitelist_patterns {
+    name_pattern = "quay.io/argoproj/*"
+  }
+
+  admission_whitelist_patterns {
+    name_pattern = "docker.io/library/postgres:*"
+  }
+
+  admission_whitelist_patterns {
+    name_pattern = "docker.io/curlimages/curl:*"
+  }
+
+  admission_whitelist_patterns {
+    name_pattern = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:*"
+  }
+
   default_admission_rule {
     evaluation_mode  = "REQUIRE_ATTESTATION"
     enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"

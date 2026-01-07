@@ -84,6 +84,7 @@ This document details the risk analysis, mitigation strategies, and future roadm
     *   ✅ Enabled Artifact Registry Vulnerability Scanning
     *   ✅ Signed images with Cosign/Sigstore (keyless)
     *   ✅ Enforced Binary Authorization (only signed images can run)
+    *   ✅ Whitelisted infrastructure images (ArgoCD, Cloud SQL Proxy, etc.)
     *   ✅ Removed Cloud Deploy from CI/CD (GitOps-only)
 
 ### Proposed Future Milestones
