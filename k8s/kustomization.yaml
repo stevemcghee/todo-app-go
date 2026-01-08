@@ -24,4 +24,4 @@ resources:
 images:
   - name: todo-app-go
     newName: us-central1-docker.pkg.dev/smcghee-todo-p15n-38a6/todo-app-go/todo-app-go
-    digest: sha256:c56b9d199c4df1a3683ced9a81aa7dbb2f4a036d310c5833e81dc54e8a16f12c
+    digest: sha256:12e095a73c8e48e49232cb10447e56a9e8a35fd8a0b89f8709fec2ced9040f5b

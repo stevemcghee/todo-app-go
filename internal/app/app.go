@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
@@ -359,9 +360,36 @@ func HealthzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type IndexData struct {
+	ClusterName string
+	Region      string
+}
+
 func ServeIndex(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Serving index.html", "path", r.URL.Path)
-	http.ServeFile(w, r, "templates/index.html")
+
+	tmpl, err := template.ParseFiles("templates/index.html")
+	if err != nil {
+		slog.Error("Failed to parse template", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := IndexData{
+		ClusterName: os.Getenv("CLUSTER_NAME"),
+		Region:      os.Getenv("REGION"),
+	}
+
+	if data.ClusterName == "" {
+		data.ClusterName = "local-cluster"
+	}
+	if data.Region == "" {
+		data.Region = "local"
+	}
+
+	if err := tmpl.Execute(w, data); err != nil {
+		slog.Error("Failed to execute template", "error", err)
+	}
 }
 
 func HandleTodos(w http.ResponseWriter, r *http.Request) {
