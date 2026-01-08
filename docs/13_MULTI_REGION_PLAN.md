@@ -61,3 +61,18 @@ This document outlines the detailed plan to expand the `todo-app-go` implementat
 - **Data Consistency**: Cross-region replication has latency. Strong consistency for writes is maintained by always writing to primary, but reads from replica might be stale.
 - **Cost**: Doubling the infrastructure will double the compute/DB costs.
 - **Complexity**: Debugging distributed systems is harder.
+
+## Potential Pitfalls and Challenges Observed
+During the implementation of Milestone 13, several challenges were encountered:
+
+1.  **Binary Authorization Pattern Specificity**:
+    *   **Challenge**: Gatekeeper and application images were blocked on the new cluster despite generic whitelist patterns. Patterns like `docker.io/openpolicyagent/*` failed to match when the Kubernetes event reported the image as `openpolicyagent/gatekeeper` (omitting the registry).
+    *   **Solution**: Updated `binauthz-policy.yaml` to include explicit patterns matching both fully-qualified and short-name variants (e.g., `openpolicyagent/gatekeeper:*`).
+
+2.  **Gatekeeper Installation Timeouts**:
+    *   **Challenge**: Terraform's `helm_release` for Gatekeeper repeatedly timed out during the "pre-install" hook (CRD update job). This was caused by the hook job being blocked by the Binary Authorization issue mentioned above, leading to a "zombie" release state.
+    *   **Solution**: Performed a manual deep cleanup of the `gatekeeper-system` namespace, manually installed the release to verify pod health, and then imported the working release into Terraform state. Set `wait = false` in `terraform/gatekeeper.tf` to prevent fragile timeout logic from breaking future applies.
+
+3.  **ArgoCD Sync Chicken-and-Egg (CRDs)**:
+    *   **Challenge**: ArgoCD failed to sync Gatekeeper `Constraints` because the `ConstraintTemplates` (which define the CRDs for those constraints) hadn't been processed by Gatekeeper yet.
+    *   **Solution**: Manually seeded the `ConstraintTemplates` in the new cluster using `kubectl apply` to establish the CRDs, allowing ArgoCD to successfully sync the remaining resources in subsequent retries.
