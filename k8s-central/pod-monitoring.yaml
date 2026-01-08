@@ -1,0 +1,12 @@
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: todo-app-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: todo-app-go
+  endpoints:
+  - port: 8080
+    path: /metrics
+    interval: 30s

@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: todo-app-load-generator
+  labels:
+    app: load-generator
+spec:
+  # Run every minute
+  schedule: "*/1 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Allow
+  
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: load-generator
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: curl
+            image: curlimages/curl:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Make 2 requests per minute to generate consistent load
+              # This helps with:
+              # - SLO monitoring validation
+              # - Keeping connection pools warm
+              # - Generating metrics data
+              
+              SERVICE_URL="http://todo-app-go-service"
+              
+              echo "=== Load Generator Run at $(date) ==="
+              
+              # Request 1: GET /todos (reads from replica)
+              echo "Request 1: GET /todos"
+              curl -s -o /dev/null -w "Status: %{http_code}, Time: %{time_total}s\n" \
+                -H "User-Agent: LoadGenerator/1.0" \
+                ${SERVICE_URL}/todos || echo "Request 1 failed"
+              
+              # Small delay between requests
+              sleep 2
+              
+              # Request 2: GET /healthz (health check)
+              echo "Request 2: GET /healthz"
+              curl -s -o /dev/null -w "Status: %{http_code}, Time: %{time_total}s\n" \
+                -H "User-Agent: LoadGenerator/1.0" \
+                ${SERVICE_URL}/healthz || echo "Request 2 failed"
+              
+              echo "=== Load Generator Complete ==="
+            resources:
+              requests:
+                cpu: "10m"
+                memory: "32Mi"
+              limits:
+                cpu: "50m"
+                memory: "64Mi"

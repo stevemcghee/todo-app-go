@@ -1,0 +1,69 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: todo-app-go
+  namespace: todo-app
+  labels:
+    app: todo-app-go
+    updated-at: "2025-12-19T10-45" # Trigger rollout
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: todo-app-go
+  template:
+    metadata:
+      labels:
+        app: todo-app-go
+    spec:
+      serviceAccountName: todo-app-sa
+      containers:
+      - name: todo-app-go
+        image: todo-app-go
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      - name: cloudsql-proxy
+        image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.1
+        args:
+          - "--structured-logs"
+          - "--auto-iam-authn"
+          - "smcghee-todo-p15n-38a6:us-central1:todo-app-db-instance?port=5432"
+          - "smcghee-todo-p15n-38a6:us-east1:todo-app-db-instance-replica?port=5433"
+        securityContext:
+          runAsNonRoot: true
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+  strategy:
+    canary:
+      analysis:
+        templates:
+        - templateName: smoke-test
+      steps:
+      - setWeight: 20
+      - pause: {duration: 1m}
+      - setWeight: 50
+      - pause: {duration: 1m}

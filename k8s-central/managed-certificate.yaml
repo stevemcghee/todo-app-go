@@ -1,0 +1,8 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: todo-app-cert
+  namespace: todo-app
+spec:
+  domains:
+    - todo.smig.dev
