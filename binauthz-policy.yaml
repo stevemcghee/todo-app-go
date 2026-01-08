@@ -16,11 +16,17 @@ admissionWhitelistPatterns:
 clusterAdmissionRules:
   us-central1.todo-app-cluster:
     enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
-    evaluationMode: ALWAYS_ALLOW
+    evaluationMode: REQUIRE_ATTESTATION
+    requireAttestationsBy:
+    - projects/smcghee-todo-p15n-38a6/attestors/cosign-attestor
   us-east1.todo-app-cluster-secondary:
     enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
-    evaluationMode: ALWAYS_ALLOW
+    evaluationMode: REQUIRE_ATTESTATION
+    requireAttestationsBy:
+    - projects/smcghee-todo-p15n-38a6/attestors/cosign-attestor
 defaultAdmissionRule:
   enforcementMode: ENFORCED_BLOCK_AND_AUDIT_LOG
-  evaluationMode: ALWAYS_ALLOW
+  evaluationMode: REQUIRE_ATTESTATION
+  requireAttestationsBy:
+  - projects/smcghee-todo-p15n-38a6/attestors/cosign-attestor
 name: projects/smcghee-todo-p15n-38a6/policy
