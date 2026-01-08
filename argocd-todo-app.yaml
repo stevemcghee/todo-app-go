@@ -8,20 +8,7 @@ spec:
   source:
     repoURL: https://github.com/stevemcghee/go-to-production.git
     targetRevision: main
-    path: k8s
-    kustomize:
-      patches:
-        - target:
-            kind: Rollout
-            name: todo-app-go
-          patch: |-
-            - op: add
-              path: /spec/template/spec/containers/0/env
-              value:
-                - name: CLUSTER_NAME
-                  value: todo-app-cluster
-                - name: REGION
-                  value: us-central1
+    path: k8s/overlays/us-central1
   destination:
     server: https://kubernetes.default.svc
     namespace: todo-app
@@ -42,20 +29,7 @@ spec:
   source:
     repoURL: https://github.com/stevemcghee/go-to-production.git
     targetRevision: main
-    path: k8s
-    kustomize:
-      patches:
-        - target:
-            kind: Rollout
-            name: todo-app-go
-          patch: |-
-            - op: add
-              path: /spec/template/spec/containers/0/env
-              value:
-                - name: CLUSTER_NAME
-                  value: todo-app-cluster-secondary
-                - name: REGION
-                  value: us-east1
+    path: k8s/overlays/us-east1
   destination:
     name: us-east1
     namespace: todo-app

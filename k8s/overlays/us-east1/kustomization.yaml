@@ -1,0 +1,15 @@
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: Rollout
+      name: todo-app-go
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env
+        value:
+          - name: CLUSTER_NAME
+            value: todo-app-cluster-secondary
+          - name: REGION
+            value: us-east1
