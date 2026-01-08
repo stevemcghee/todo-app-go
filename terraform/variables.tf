@@ -17,6 +17,12 @@ variable "zone" {
   default     = "us-central1-a"
 }
 
+variable "secondary_region" {
+  description = "The secondary GCP region for multi-region deployment"
+  type        = string
+  default     = "us-east1"
+}
+
 variable "cluster_name" {
   description = "The name of the GKE cluster"
   type        = string

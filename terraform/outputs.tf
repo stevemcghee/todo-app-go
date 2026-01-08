@@ -29,3 +29,19 @@ output "cloudsql_replica_connection_name" {
   description = "The connection name of the Cloud SQL Read Replica"
   value       = google_sql_database_instance.read_replica.connection_name
 }
+
+output "secondary_kubeconfig" {
+  description = "Kubernetes config file for connecting to the secondary GKE cluster"
+  value       = google_container_cluster.secondary.master_auth[0].cluster_ca_certificate
+  sensitive   = true
+}
+
+output "secondary_cluster_name" {
+  description = "The name of the secondary GKE cluster"
+  value       = google_container_cluster.secondary.name
+}
+
+output "secondary_region" {
+  description = "The region where the secondary cluster is located"
+  value       = google_container_cluster.secondary.location
+}

@@ -37,10 +37,18 @@ This document outlines the detailed plan to expand the `todo-app-go` implementat
 - [ ] **ArgoCD Registration**: Register the new cluster with the existing ArgoCD (hub-and-spoke or just multi-target).
 - [ ] **Deploy App**: Sync applications to the new cluster.
 
-### Phase 4: Global Traffic Management
-- [ ] **Multi-Cluster Gateway/Ingress**: Replace regional Ingress with Global Load Balancer.
-- [ ] **Health Checks**: Configure global health checks.
-- [ ] **DNS Update**: Point domain to the Anycast IP of GCLB.
+### Phase 4: Application Deployment & Traffic Management
+- [x] **ArgoCD Registration**: Register the new cluster (Done).
+- [ ] **ArgoCD Application**:
+    - Update `argocd-todo-app.yaml` to include a second Application for `us-east1`.
+    - Commit and sync.
+- [ ] **Ingress Strategy**:
+    - Current `ingress.yaml` creates a *Regional* External Load Balancer in each cluster.
+    - We will have two separate IP addresses (one per region).
+    - **Future/Next**: We will implement specific Multi-Cluster Ingress (MCI) or simply use DNS Geo-Routing (e.g. Google Cloud DNS with Geo Policy) to route users to the closest IP.
+    - *Decision*: For this milestone, we accept two regional load balancers.
+- [ ] **DNS Update**:
+    - Add A records for both regional IPs (Round Robin) or use Geo DNS.
 
 ### Phase 5: Verification & Drills
 - [ ] **Traffic Distribution**: Verify traffic is routed to the closest region.

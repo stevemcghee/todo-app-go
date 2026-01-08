@@ -42,6 +42,22 @@ provider "helm" {
   }
 }
 
+provider "helm" {
+  alias = "secondary"
+  kubernetes {
+    host                   = "https://${google_container_cluster.secondary.endpoint}"
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(google_container_cluster.secondary.master_auth[0].cluster_ca_certificate)
+  }
+}
+
+provider "kubernetes" {
+  alias                  = "secondary"
+  host                   = "https://${google_container_cluster.secondary.endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(google_container_cluster.secondary.master_auth[0].cluster_ca_certificate)
+}
+
 # Enable necessary Google Cloud APIs
 resource "google_project_service" "compute_api" {
   project = var.project_id
@@ -233,6 +249,14 @@ resource "google_compute_subnetwork" "private" {
   network       = google_compute_network.main.name
 }
 
+# Create a private subnetwork for the secondary GKE cluster
+resource "google_compute_subnetwork" "private_secondary" {
+  name          = "${var.project_id}-subnet-secondary"
+  ip_cidr_range = "10.1.0.0/20"
+  region        = var.secondary_region
+  network       = google_compute_network.main.name
+}
+
 # Create a Cloud SQL instance
 resource "google_sql_database_instance" "main_instance" {
   name             = var.db_instance_name
@@ -295,8 +319,9 @@ resource "google_artifact_registry_repository" "my-repo" {
 resource "google_sql_database_instance" "read_replica" {
   name                 = "${var.db_instance_name}-replica"
   master_instance_name = google_sql_database_instance.main_instance.name
-  region               = var.region
+  region               = var.secondary_region
   database_version     = "POSTGRES_14"
+  deletion_protection  = false
 
   settings {
     tier = "db-custom-1-3840"
@@ -310,5 +335,81 @@ resource "google_sql_database_instance" "read_replica" {
   }
   replica_configuration {
     failover_target = false
+  }
+}
+
+# Create a Secondary GKE cluster
+resource "google_container_cluster" "secondary" {
+  name                     = "${var.cluster_name}-secondary"
+  location                 = var.secondary_region
+  deletion_protection      = false
+  remove_default_node_pool = true
+  initial_node_count       = 1
+
+  network    = google_compute_network.main.name
+  subnetwork = google_compute_subnetwork.private_secondary.name
+
+  ip_allocation_policy {
+    cluster_ipv4_cidr_block = "/19"
+    services_ipv4_cidr_block = "/22"
+  }
+
+  maintenance_policy {
+    daily_maintenance_window {
+      start_time = "03:00" # 3 AM UTC
+    }
+  }
+
+  logging_config {
+    enable_components = ["SYSTEM_COMPONENTS", "WORKLOADS"]
+  }
+
+  monitoring_config {
+    enable_components = ["SYSTEM_COMPONENTS"]
+    managed_prometheus {
+      enabled = true
+    }
+  }
+
+  master_auth {
+    client_certificate_config {
+      issue_client_certificate = false
+    }
+  }
+
+  workload_identity_config {
+    workload_pool = "${var.project_id}.svc.id.goog"
+  }
+
+  addons_config {
+    gke_backup_agent_config {
+      enabled = true
+    }
+  }
+
+  binary_authorization {
+    evaluation_mode = "PROJECT_SINGLETON_POLICY_ENFORCE"
+  }
+}
+
+# Create a Secondary GKE node pool
+resource "google_container_node_pool" "secondary_nodes" {
+  name       = "${google_container_cluster.secondary.name}-node-pool"
+  location   = var.secondary_region
+  cluster    = google_container_cluster.secondary.name
+  node_count = 2
+
+  node_config {
+    machine_type = "e2-medium"
+    service_account = google_service_account.gke_node.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+    metadata = {
+      disable-legacy-endpoints = "true"
+    }
+    workload_metadata_config {
+      mode = "GKE_METADATA"
+    }
   }
 }
