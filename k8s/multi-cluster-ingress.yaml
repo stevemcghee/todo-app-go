@@ -1,0 +1,29 @@
+apiVersion: networking.gke.io/v1
+kind: MultiClusterService
+metadata:
+  name: todo-app-mcs
+  namespace: todo-app
+spec:
+  template:
+    spec:
+      selector:
+        app: todo-app-go
+      ports:
+      - name: http
+        protocol: TCP
+        port: 80
+        targetPort: 8080
+---
+apiVersion: networking.gke.io/v1
+kind: MultiClusterIngress
+metadata:
+  name: todo-app-ingress-global
+  namespace: todo-app
+  annotations:
+    networking.gke.io/static-ip: "todo-app-global-ip" # Optional: Reserve a global IP if needed
+spec:
+  template:
+    spec:
+      backend:
+        serviceName: todo-app-mcs
+        servicePort: 80

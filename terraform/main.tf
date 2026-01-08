@@ -155,6 +155,24 @@ resource "google_project_service" "gkebackup_api" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "gkehub_api" {
+  project = var.project_id
+  service = "gkehub.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "multiclusteringress_api" {
+  project = var.project_id
+  service = "multiclusteringress.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "multiclusterservicediscovery_api" {
+  project = var.project_id
+  service = "multiclusterservicediscovery.googleapis.com"
+  disable_on_destroy = false
+}
+
 # Create a GKE cluster
 resource "google_container_cluster" "primary" {
   name                     = var.cluster_name

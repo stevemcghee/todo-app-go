@@ -21,6 +21,7 @@ resource "helm_release" "gatekeeper_secondary" {
   create_namespace = true
   version    = "3.14.0"
   wait       = false
+  skip_crds  = true
 
   set {
     name  = "replicas"

@@ -4,7 +4,7 @@
 # Using GKE cluster service type
 resource "google_monitoring_service" "todo_app" {
   service_id   = "todo-app-go-svc"
-  display_name = "Todo App Go Service"
+  display_name = "Todo App Go Service (Primary)"
   
   basic_service {
     service_type = "CLUSTER_ISTIO"
@@ -17,31 +17,120 @@ resource "google_monitoring_service" "todo_app" {
   }
 }
 
-# SLO 1: Availability - 99.9% of requests should succeed (non-5xx)
+# Service for Secondary Cluster (East)
+resource "google_monitoring_service" "todo_app_east" {
+  service_id   = "todo-app-go-east-svc"
+  display_name = "Todo App Go Service (Secondary - East)"
+  
+  basic_service {
+    service_type = "CLUSTER_ISTIO"
+    service_labels = {
+      cluster_name      = "${var.cluster_name}-secondary"
+      location          = var.secondary_region
+      service_namespace = "default"
+      service_name      = "todo-app-go"
+    }
+  }
+}
+
+# Service for Global Load Balancer
+resource "google_monitoring_service" "todo_app_global" {
+  service_id   = "todo-app-global-lb"
+  display_name = "Todo App Global LB"
+  
+  basic_service {
+    service_type = "CLUSTER_ISTIO"
+    service_labels = {
+      cluster_name      = "global-lb"
+      location          = "global"
+      service_namespace = "default"
+      service_name      = "todo-app-global"
+    }
+  }
+}
+
+# SLO: Availability (Primary)
 resource "google_monitoring_slo" "availability" {
   service      = google_monitoring_service.todo_app.service_id
   slo_id       = "availability-slo"
-  display_name = "99.9% Availability SLO"
+  display_name = "99.9% Availability SLO (Primary)"
 
-  goal                = 0.999  # 99.9% target
-  rolling_period_days = 28     # 28-day rolling window
+  goal                = 0.999
+  rolling_period_days = 28
 
   request_based_sli {
     good_total_ratio {
-      # Good requests: HTTP status code < 500
       good_service_filter = join(" AND ", [
         "resource.type=\"prometheus_target\"",
         "metric.type=\"prometheus.googleapis.com/http_requests_total/counter\"",
+        "resource.labels.cluster=\"${var.cluster_name}\"",
         "metric.labels.code!=\"500\"",
         "metric.labels.code!=\"502\"",
         "metric.labels.code!=\"503\"",
         "metric.labels.code!=\"504\""
       ])
 
-      # Total requests: all HTTP requests
       total_service_filter = join(" AND ", [
         "resource.type=\"prometheus_target\"",
-        "metric.type=\"prometheus.googleapis.com/http_requests_total/counter\""
+        "metric.type=\"prometheus.googleapis.com/http_requests_total/counter\"",
+        "resource.labels.cluster=\"${var.cluster_name}\""
+      ])
+    }
+  }
+}
+
+# SLO: Availability (Secondary - East)
+resource "google_monitoring_slo" "availability_east" {
+  service      = google_monitoring_service.todo_app_east.service_id
+  slo_id       = "availability-slo-east"
+  display_name = "99.9% Availability SLO (East)"
+
+  goal                = 0.999
+  rolling_period_days = 28
+
+  request_based_sli {
+    good_total_ratio {
+      good_service_filter = join(" AND ", [
+        "resource.type=\"prometheus_target\"",
+        "metric.type=\"prometheus.googleapis.com/http_requests_total/counter\"",
+        "resource.labels.cluster=\"${var.cluster_name}-secondary\"",
+        "metric.labels.code!=\"500\"",
+        "metric.labels.code!=\"502\"",
+        "metric.labels.code!=\"503\"",
+        "metric.labels.code!=\"504\""
+      ])
+
+      total_service_filter = join(" AND ", [
+        "resource.type=\"prometheus_target\"",
+        "metric.type=\"prometheus.googleapis.com/http_requests_total/counter\"",
+        "resource.labels.cluster=\"${var.cluster_name}-secondary\""
+      ])
+    }
+  }
+}
+
+# SLO: Global Availability (Load Balancer)
+resource "google_monitoring_slo" "availability_global" {
+  service      = google_monitoring_service.todo_app_global.service_id
+  slo_id       = "availability-slo-global"
+  display_name = "99.99% Global Availability SLO"
+
+  goal                = 0.9999
+  rolling_period_days = 28
+
+  request_based_sli {
+    good_total_ratio {
+      # Good requests: response_code < 500
+      good_service_filter = join(" AND ", [
+        "resource.type=\"https_lb_rule\"",
+        "metric.type=\"loadbalancing.googleapis.com/https/request_count\"",
+        "metric.labels.response_code_class!=\"500\""
+      ])
+
+      # Total requests
+      total_service_filter = join(" AND ", [
+        "resource.type=\"https_lb_rule\"",
+        "metric.type=\"loadbalancing.googleapis.com/https/request_count\""
       ])
     }
   }
