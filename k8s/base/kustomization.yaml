@@ -3,7 +3,6 @@ resources:
   - serviceaccount.yaml
   - service.yaml
   - hpa.yaml
-  - ingress.yaml
   - managed-certificate.yaml
   - multi-cluster-ingress.yaml
   - backend-config.yaml
