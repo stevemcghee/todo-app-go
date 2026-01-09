@@ -19,6 +19,8 @@ kind: MultiClusterIngress
 metadata:
   name: todo-app-ingress-global
   namespace: todo-app
+  annotations:
+    networking.gke.io/static-ip: "${todo_app_global_ip}"
 spec:
   template:
     spec:

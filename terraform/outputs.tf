@@ -45,3 +45,8 @@ output "secondary_region" {
   description = "The region where the secondary cluster is located"
   value       = google_container_cluster.secondary.location
 }
+
+output "mci_static_ip" {
+  description = "The static global IP for the Multi-Cluster Ingress"
+  value       = google_compute_global_address.todo_app_global_ip.address
+}
