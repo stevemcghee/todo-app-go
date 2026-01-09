@@ -13,14 +13,14 @@ resources:
   - load-generator.yaml
   - pod-monitoring.yaml
   - policies/template-required-labels.yaml
-  # - policies/constraint-ns-owner.yaml
+  - policies/constraint-ns-owner.yaml
   - rollouts/analysis-smoke-test.yaml
   - rollouts/todo-app-rollout.yaml
   - pdb.yaml
   - policies/template-disallow-latest.yaml
-  # - policies/constraint-no-latest-tag.yaml
+  - policies/constraint-no-latest-tag.yaml
   - policies/template-required-resource-limits.yaml
-  # - policies/constraint-resource-limits.yaml
+  - policies/constraint-resource-limits.yaml
 
 images:
   - name: todo-app-go

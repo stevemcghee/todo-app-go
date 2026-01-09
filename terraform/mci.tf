@@ -41,3 +41,7 @@ resource "google_gke_hub_feature" "mci" {
     google_project_service.multiclusteringress_api
   ]
 }
+
+resource "google_compute_global_address" "todo_app_global_ip" {
+  name = "todo-app-global-ip"
+}
