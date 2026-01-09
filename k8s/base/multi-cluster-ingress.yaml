@@ -20,7 +20,7 @@ metadata:
   name: todo-app-ingress-global
   namespace: todo-app
   annotations:
-    networking.gke.io/static-ip: "${todo_app_global_ip}"
+    networking.gke.io/static-ip: "34.160.71.244"
 spec:
   template:
     spec:
