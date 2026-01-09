@@ -89,10 +89,39 @@ li.completed span {
 }
 
 .delete-btn {
+
     background: none;
+
     border: none;
+
     color: #dc3545;
+
     font-size: 1.2rem;
+
     cursor: pointer;
+
     padding: 0.5rem;
+
+}
+
+
+
+footer {
+
+    position: absolute;
+
+    top: 1rem;
+
+    right: 1rem;
+
+}
+
+
+
+footer p {
+
+    margin: 0;
+
+    color: #aaa;
+
 }
