@@ -417,3 +417,41 @@ To restore from a specific daily backup (overwrites current data):
     gcloud sql backups restore [BACKUP_ID] --restore-instance=todo-app-db-instance
     ```
     *Warning: This will overwrite the current database state.*
+
+## Common Pitfalls & Troubleshooting
+
+### Multi-Cluster Ingress (MCI) Configuration
+
+#### Static IP Assignment
+**Issue**: The `networking.gke.io/static-ip` annotation on the `MultiClusterIngress` resource failed to apply when using a variable placeholder (e.g., `${todo_app_global_ip}`) or a resource name that hadn't propagated.
+**Solution**: Use the **literal static IP address** (e.g., `34.160.71.244`) in the annotation.
+**Check**: Verify the IP is assigned by checking the VIP status:
+```bash
+kubectl get mci -n todo-app todo-app-ingress-global -o yaml
+```
+
+#### HTTPS & TLS Certificates
+**Issue**: The site is reachable via IP but fails to load via the domain with HTTPS.
+**Solution**: A `ManagedCertificate` resource must be created and linked to the MCI.
+1. Ensure `k8s/base/managed-certificate.yaml` exists and lists the correct domain.
+2. Add the annotation `networking.gke.io/managed-certificates: "todo-app-cert"` to the `MultiClusterIngress`.
+**Note**: Google-managed certificates can take up to **60 minutes** to provision.
+
+### GitOps Synchronization (ArgoCD)
+
+**Issue**: Changes made manually via `kubectl apply` (like updating the MCI static IP) disappear or revert after a few minutes.
+**Cause**: ArgoCD monitors the Git repository as the "Source of Truth" and reverts any manual changes that differ from the repo.
+**Solution**: **Always commit changes to Git.**
+```bash
+git add k8s/base/multi-cluster-ingress.yaml
+git commit -m "Update static IP"
+git push origin main
+```
+
+### Terraform & Helm Timeouts
+
+**Issue**: `terraform apply` fails with a timeout error for Helm releases (e.g., `gatekeeper_secondary`).
+**Workaround**:
+1. Temporarily comment out the failing `helm_release` resource in Terraform.
+2. Run `terraform apply` to provision other critical resources (like IPs).
+3. Uncomment the resource and re-run `terraform apply`, or troubleshoot the specific cluster connectivity/resource limits causing the timeout.
