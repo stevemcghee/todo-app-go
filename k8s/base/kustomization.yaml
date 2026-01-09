@@ -5,6 +5,7 @@ resources:
   - hpa.yaml
   - ingress.yaml
   - managed-certificate.yaml
+  - multi-cluster-ingress.yaml
   - backend-config.yaml
   - create-iam-user-job.yaml
   - db-init-job.yaml

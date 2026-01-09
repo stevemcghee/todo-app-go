@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/stevemcghee/go-to-production.git
     targetRevision: main
-    path: k8s-central
+    path: k8s/overlays/us-central1
   destination:
     server: https://kubernetes.default.svc
     namespace: todo-app
@@ -29,7 +29,7 @@ spec:
   source:
     repoURL: https://github.com/stevemcghee/go-to-production.git
     targetRevision: main
-    path: k8s-east
+    path: k8s/overlays/us-east1
   destination:
     name: us-east1
     namespace: todo-app
