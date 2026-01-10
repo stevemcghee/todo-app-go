@@ -258,7 +258,7 @@ resource "google_monitoring_dashboard" "todo_app_overview" {
         
         # ===== ROW 5: INFRASTRUCTURE - PODS & DATABASE =====
         {
-          width  = 4
+          width  = 3
           height = 4
           xPos   = 0
           yPos   = 18
@@ -268,9 +268,11 @@ resource "google_monitoring_dashboard" "todo_app_overview" {
               timeSeriesQuery = {
                 timeSeriesFilter = {
                   filter = join(" AND ", [
-                    "resource.type=\"k8s_pod\"",
-                    "metric.type=\"kubernetes.io/pod/network/received_bytes_count\"",
-                    "resource.labels.pod_name=monitoring.regex.full_match(\"todo-app-go-.*\")"
+                    "resource.type=\"k8s_container\"",
+                    "metric.type=\"kubernetes.io/container/uptime\"",
+                    "resource.labels.pod_name=monitoring.regex.full_match(\"todo-app-go-.*\")",
+                    "resource.labels.namespace_name=\"todo-app\"",
+                    "resource.labels.container_name=\"todo-app-go\""
                   ])
                   aggregation = {
                     alignmentPeriod    = "60s"
@@ -286,9 +288,9 @@ resource "google_monitoring_dashboard" "todo_app_overview" {
           }
         },
         {
-          width  = 4
+          width  = 3
           height = 4
-          xPos   = 4
+          xPos   = 3
           yPos   = 18
           widget = {
             title = "Cloud SQL - CPU Utilization"
@@ -329,9 +331,9 @@ resource "google_monitoring_dashboard" "todo_app_overview" {
           }
         },
         {
-          width  = 4
+          width  = 3
           height = 4
-          xPos   = 8
+          xPos   = 6
           yPos   = 18
           widget = {
             title = "Cloud SQL - Active Connections"
@@ -363,10 +365,45 @@ resource "google_monitoring_dashboard" "todo_app_overview" {
             }
           }
         },
+        {
+          width  = 3
+          height = 4
+          xPos   = 9
+          yPos   = 18
+          widget = {
+            title = "Cloud SQL - Replication Lag"
+            xyChart = {
+              dataSets = [
+                {
+                  timeSeriesQuery = {
+                    timeSeriesFilter = {
+                      filter = join(" AND ", [
+                        "resource.type=\"cloudsql_database\"",
+                        "metric.type=\"cloudsql.googleapis.com/database/replication/replica_lag\""
+                      ])
+                      aggregation = {
+                        alignmentPeriod    = "60s"
+                        perSeriesAligner   = "ALIGN_MEAN"
+                        crossSeriesReducer = "REDUCE_MEAN"
+                        groupByFields      = ["resource.label.database_id"]
+                      }
+                    }
+                  }
+                  plotType   = "LINE"
+                  targetAxis = "Y1"
+                }
+              ]
+              yAxis = {
+                label = "Lag (Seconds)"
+                scale = "LINEAR"
+              }
+            }
+          }
+        },
         
         # ===== ROW 6: ROLLOUT PROGRESS =====
         {
-          width  = 12
+          width  = 8
           height = 4
           xPos   = 0
           yPos   = 22
@@ -391,12 +428,47 @@ resource "google_monitoring_dashboard" "todo_app_overview" {
                       }
                     }
                   }
-                  plotType   = "LINE"
+                  plotType   = "STACKED_AREA"
                   targetAxis = "Y1"
                 }
               ]
               yAxis = {
                 label = "Pod Count"
+                scale = "LINEAR"
+              }
+            }
+          }
+        },
+        {
+          width  = 4
+          height = 4
+          xPos   = 8
+          yPos   = 22
+          widget = {
+            title = "Active Revisions (Timeline)"
+            xyChart = {
+              dataSets = [
+                {
+                  timeSeriesQuery = {
+                    timeSeriesFilter = {
+                      filter = join(" AND ", [
+                        "resource.type=\"prometheus_target\"",
+                        "metric.type=\"prometheus.googleapis.com/argocd_app_info/gauge\"",
+                        "metric.labels.name=monitoring.regex.full_match(\"todo-app.*\")"
+                      ])
+                      aggregation = {
+                        alignmentPeriod    = "60s"
+                        perSeriesAligner   = "ALIGN_MAX"
+                        groupByFields      = ["metric.label.revision", "metric.label.name"]
+                      }
+                    }
+                  }
+                  plotType   = "STACKED_AREA"
+                  targetAxis = "Y1"
+                }
+              ]
+              yAxis = {
+                label = "Active"
                 scale = "LINEAR"
               }
             }

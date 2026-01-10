@@ -4,6 +4,17 @@ resource "google_compute_security_policy" "policy" {
   name = "todo-app-security-policy"
 
   rule {
+    action   = "deny(403)"
+    priority = "500"
+    match {
+      expr {
+        expression = "request.path.matches(r'/(?:\\..*|.*\\.php|cgi-bin/.*)')"
+      }
+    }
+    description = "Block sensitive files and common exploit paths"
+  }
+
+  rule {
     action   = "allow"
     priority = "2147483647"
     match {
