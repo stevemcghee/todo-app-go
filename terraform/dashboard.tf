@@ -364,12 +364,51 @@ resource "google_monitoring_dashboard" "todo_app_overview" {
           }
         },
         
-        # ===== ROW 6: GKE NODE HEALTH =====
+        # ===== ROW 6: ROLLOUT PROGRESS =====
+        {
+          width  = 12
+          height = 4
+          xPos   = 0
+          yPos   = 22
+          widget = {
+            title = "Rollout Progress (Pods per Cluster)"
+            xyChart = {
+              dataSets = [
+                {
+                  timeSeriesQuery = {
+                    timeSeriesFilter = {
+                      filter = join(" AND ", [
+                        "resource.type=\"k8s_container\"",
+                        "metric.type=\"kubernetes.io/container/uptime\"",
+                        "resource.labels.pod_name=monitoring.regex.full_match(\"todo-app-go-.*\")",
+                        "resource.labels.namespace_name=\"todo-app\""
+                      ])
+                      aggregation = {
+                        alignmentPeriod    = "60s"
+                        perSeriesAligner   = "ALIGN_MEAN"
+                        crossSeriesReducer = "REDUCE_COUNT"
+                        groupByFields      = ["resource.label.cluster_name"]
+                      }
+                    }
+                  }
+                  plotType   = "LINE"
+                  targetAxis = "Y1"
+                }
+              ]
+              yAxis = {
+                label = "Pod Count"
+                scale = "LINEAR"
+              }
+            }
+          }
+        },
+
+        # ===== ROW 7: GKE NODE HEALTH =====
         {
           width  = 6
           height = 4
           xPos   = 0
-          yPos   = 22
+          yPos   = 26
           widget = {
             title = "GKE Node CPU Utilization"
             xyChart = {
@@ -412,7 +451,7 @@ resource "google_monitoring_dashboard" "todo_app_overview" {
           width  = 6
           height = 4
           xPos   = 6
-          yPos   = 22
+          yPos   = 26
           widget = {
             title = "GKE Node Memory Utilization"
             xyChart = {
@@ -448,6 +487,42 @@ resource "google_monitoring_dashboard" "todo_app_overview" {
                   value = 0.9
                 }
               ]
+            }
+          }
+        },
+        # ===== ROW 8: ARGOCD STATUS =====
+        {
+          width  = 12
+          height = 4
+          xPos   = 0
+          yPos   = 30
+          widget = {
+            title = "ArgoCD Application Health"
+            xyChart = {
+              dataSets = [
+                {
+                  timeSeriesQuery = {
+                    timeSeriesFilter = {
+                      filter = join(" AND ", [
+                        "resource.type=\"prometheus_target\"",
+                        "metric.type=\"prometheus.googleapis.com/argocd_app_info/gauge\""
+                      ])
+                      aggregation = {
+                        alignmentPeriod    = "60s"
+                        perSeriesAligner   = "ALIGN_MEAN"
+                        crossSeriesReducer = "REDUCE_COUNT"
+                        groupByFields      = ["metric.label.health_status"]
+                      }
+                    }
+                  }
+                  plotType   = "LINE"
+                  targetAxis = "Y1"
+                }
+              ]
+              yAxis = {
+                label = "App Count"
+                scale = "LINEAR"
+              }
             }
           }
         }

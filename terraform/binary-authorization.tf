@@ -32,6 +32,18 @@ resource "google_binary_authorization_policy" "policy" {
     name_pattern = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:*"
   }
 
+  admission_whitelist_patterns {
+    name_pattern = "docker.io/openpolicyagent/*"
+  }
+
+  admission_whitelist_patterns {
+    name_pattern = "openpolicyagent/gatekeeper:*"
+  }
+
+  admission_whitelist_patterns {
+    name_pattern = "openpolicyagent/gatekeeper-crds:*"
+  }
+
   default_admission_rule {
     evaluation_mode  = "REQUIRE_ATTESTATION"
     enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"

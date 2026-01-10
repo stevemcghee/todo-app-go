@@ -1,0 +1,15 @@
+apiVersion: networking.gke.io/v1
+kind: MultiClusterService
+metadata:
+  name: todo-app-mcs
+  namespace: todo-app
+spec:
+  template:
+    spec:
+      selector:
+        app: todo-app-go
+      ports:
+      - name: http
+        protocol: TCP
+        port: 80
+        targetPort: 8080

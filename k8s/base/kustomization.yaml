@@ -4,7 +4,7 @@ resources:
   - service.yaml
   - hpa.yaml
   - managed-certificate.yaml
-  - multi-cluster-ingress.yaml
+  - multi-cluster-service.yaml
   - backend-config.yaml
   - create-iam-user-job.yaml
   - db-init-job.yaml

@@ -16,6 +16,34 @@ resource "helm_release" "argocd" {
     name  = "server.extraArgs"
     value = "{--insecure}" # Disable TLS on the server pod itself (termination handled by LB/Ingress or just easier for port-forward)
   }
+
+  # Enable Metrics for Monitoring
+  set {
+    name  = "server.metrics.enabled"
+    value = "true"
+  }
+  set {
+    name  = "server.metrics.serviceMonitor.enabled"
+    value = "false" # We use PodMonitoring CR for Google Managed Prometheus
+  }
+
+  set {
+    name  = "repoServer.metrics.enabled"
+    value = "true"
+  }
+  set {
+    name  = "repoServer.metrics.serviceMonitor.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "controller.metrics.enabled"
+    value = "true"
+  }
+  set {
+    name  = "controller.metrics.serviceMonitor.enabled"
+    value = "false"
+  }
   
   # We will rely on port-forwarding to access the UI safely
   # kubectl port-forward svc/argocd-server -n argocd 8080:443

@@ -1,5 +1,6 @@
 resources:
   - ../../base
+  - multi-cluster-ingress.yaml
 
 patches:
   - target:

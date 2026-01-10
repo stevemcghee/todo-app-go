@@ -20,26 +20,26 @@ This document outlines the detailed plan to expand the `todo-app-go` implementat
 ## Implementation Steps
 
 ### Phase 1: Preparation & Networking
-- [ ] **Quota Check**: Ensure `us-east1` has sufficient CPU/IP quotas.
-- [ ] **VPC Updates**: Ensure subnets exist for `us-east1` GKE and Services.
-- [ ] **Terraform Refactor**: Refactor Terraform to support multi-region modules (DRY principle).
+- [x] **Quota Check**: Ensure `us-east1` has sufficient CPU/IP quotas.
+- [x] **VPC Updates**: Ensure subnets exist for `us-east1` GKE and Services.
+- [x] **Terraform Refactor**: Refactor Terraform to support multi-region modules (DRY principle).
 
 ### Phase 2: Database Expansion
-- [ ] **Create Replica**: Terraform changes to add `us-east1` Read Replica.
+- [x] **Create Replica**: Terraform changes to add `us-east1` Read Replica.
 - [ ] **Verify Replication**: Check replication lag and connectivity.
 - [ ] **Application Config**: Update app to be aware of read-replicas (optional optimization) or just ensure it connects to the local region's database endpoint (using Cloud SQL Proxy or internal DNS).
     - *Note*: If the app is write-heavy, writes MUST go to Primary. If using Cloud SQL Proxy, we need to ensure the proxy in `us-east1` points to the Primary in `us-central1` for writes, or we assume `us-east1` is read-only until failover.
     - *Decision*: For simplicity initially, `us-east1` app instances will connect to `us-central1` Primary for writes.
 
 ### Phase 3: Compute Replication
-- [ ] **Deploy GKE Cluster**: Provision `todo-cluster-east` in `us-east1`.
-- [ ] **Workload Identity**: Replicate creation of ServiceAccounts and IAM bindings.
-- [ ] **ArgoCD Registration**: Register the new cluster with the existing ArgoCD (hub-and-spoke or just multi-target).
-- [ ] **Deploy App**: Sync applications to the new cluster.
+- [x] **Deploy GKE Cluster**: Provision `todo-cluster-east` in `us-east1`.
+- [x] **Workload Identity**: Replicate creation of ServiceAccounts and IAM bindings.
+- [x] **ArgoCD Registration**: Register the new cluster with the existing ArgoCD (hub-and-spoke or just multi-target).
+- [x] **Deploy App**: Sync applications to the new cluster.
 
 ### Phase 4: Application Deployment & Traffic Management
 - [x] **ArgoCD Registration**: Register the new cluster (Done).
-- [ ] **ArgoCD Application**:
+- [x] **ArgoCD Application**:
     - Update `argocd-todo-app.yaml` to include a second Application for `us-east1`.
     - Commit and sync.
 - [ ] **Ingress Strategy**:
@@ -67,7 +67,7 @@ During the implementation of Milestone 13, several challenges were encountered:
 
 1.  **Binary Authorization Pattern Specificity**:
     *   **Challenge**: Gatekeeper and application images were blocked on the new cluster despite generic whitelist patterns. Patterns like `docker.io/openpolicyagent/*` failed to match when the Kubernetes event reported the image as `openpolicyagent/gatekeeper` (omitting the registry).
-    *   **Solution**: Updated `binauthz-policy.yaml` to include explicit patterns matching both fully-qualified and short-name variants (e.g., `openpolicyagent/gatekeeper:*`).
+    *   **Solution**: Updated `binauthz-policy.yaml` and `terraform/binary-authorization.tf` to include explicit patterns matching both fully-qualified and short-name variants (e.g., `openpolicyagent/gatekeeper:*` and `openpolicyagent/gatekeeper-crds:*`).
 
 2.  **Gatekeeper Installation Timeouts**:
     *   **Challenge**: Terraform's `helm_release` for Gatekeeper repeatedly timed out during the "pre-install" hook (CRD update job). This was caused by the hook job being blocked by the Binary Authorization issue mentioned above, leading to a "zombie" release state.
