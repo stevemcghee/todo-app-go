@@ -451,23 +451,24 @@ resource "google_monitoring_dashboard" "todo_app_overview" {
                 {
                   timeSeriesQuery = {
                     timeSeriesFilter = {
-                      filter = join(" AND ", [
-                        "resource.type=\"prometheus_target\"",
-                        "metric.type=\"prometheus.googleapis.com/argocd_app_info/gauge\"",
-                        "metric.labels.name=monitoring.regex.full_match(\"todo-app.*\")"
-                      ])
                       aggregation = {
                         alignmentPeriod    = "60s"
+                        crossSeriesReducer = "REDUCE_MAX"
+                        groupByFields      = [
+                          "metric.label.revision",
+                          "metric.label.name",
+                        ]
                         perSeriesAligner   = "ALIGN_MAX"
-                        groupByFields      = ["metric.label.revision", "metric.label.name"]
                       }
+                      filter      = "resource.type=\"prometheus_target\" AND metric.type=\"prometheus.googleapis.com/argocd_app_info/gauge\" AND metric.labels.name=monitoring.regex.full_match(\"todo-app.*\")"
                     }
                   }
-                  plotType   = "STACKED_AREA"
-                  targetAxis = "Y1"
+                  plotType       = "STACKED_AREA"
+                  targetAxis     = "Y1"
+                  legendTemplate = "App: $${metric.label.name} | Rev: $${metric.label.revision}"
                 }
               ]
-              yAxis = {
+              yAxis    = {
                 label = "Active"
                 scale = "LINEAR"
               }
