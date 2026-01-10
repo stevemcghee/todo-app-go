@@ -42,13 +42,11 @@ This document outlines the detailed plan to expand the `todo-app-go` implementat
 - [x] **ArgoCD Application**:
     - Update `argocd-todo-app.yaml` to include a second Application for `us-east1`.
     - Commit and sync.
-- [ ] **Ingress Strategy**:
-    - Current `ingress.yaml` creates a *Regional* External Load Balancer in each cluster.
-    - We will have two separate IP addresses (one per region).
-    - **Future/Next**: We will implement specific Multi-Cluster Ingress (MCI) or simply use DNS Geo-Routing (e.g. Google Cloud DNS with Geo Policy) to route users to the closest IP.
-    - *Decision*: For this milestone, we accept two regional load balancers.
+- [x] **Ingress Strategy**:
+    - Implemented Multi-Cluster Ingress (MCI) with a static IP (`34.160.71.244`).
+    - Refactored Terraform and Kustomize to deploy MCI only to the config cluster (`us-central1`).
 - [ ] **DNS Update**:
-    - Add A records for both regional IPs (Round Robin) or use Geo DNS.
+    - **ACTION REQUIRED**: Update A record for `todo.smig.dev` to point to `34.160.71.244`.
 
 ### Phase 5: Verification & Drills
 - [ ] **Traffic Distribution**: Verify traffic is routed to the closest region.
